@@ -45,3 +45,6 @@ add_custom_target(example
 
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+
+#enable_testing()
+#add_test(NAME TestLogging COMMAND test_log)
