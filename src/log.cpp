@@ -174,7 +174,7 @@ const std::map<std::string, std::function<LogFormatter::Item::ptr(const std::str
     XX(T, TabLogItem),
     XX(d, DateLogItem),
     //{'p', [](const std::string& fmt){ return LogFormatter::Item::ptr(new LevelLogItem(fmt)); }}, // p:日志级别
-    ////{'r', [](const std::string& fmt){ return LogFormatter::Item::ptr(new (fmt)); }},// r:累计毫秒数
+    //{'r', [](const std::string& fmt){ return LogFormatter::Item::ptr(new ElapseLogItem(fmt)); }},// r:累计毫秒数
     //{'c', [](const std::string& fmt){ return LogFormatter::Item::ptr(new NameLogItem(fmt)); }},// c:日志名称
     //{'t', [](const std::string& fmt){ return LogFormatter::Item::ptr(new ThreadIdLogItem(fmt)); }},// t:线程id
     //{'n', [](const std::string& fmt){ return LogFormatter::Item::ptr(new NewLineLogItem(fmt)); }},// n:换行
@@ -237,26 +237,44 @@ LogFormatter::LogFormatter(const std::string& pattern)
     : m_pattern(pattern) {
 
     bool found = false;
-    for (auto& c : pattern) {
-        if (c == '%') {
+    for (auto it = pattern.begin(); it < pattern.end(); ++it) {
+        if (*it == '%') {
             if (found) {
-                std::cout  << "parse_error: "  << c << std::endl;
+                std::cout  << "parse_error: "  << *it << std::endl;
                 break;
             } else {
                 found = true;
             }
         } else {
-            auto key = std::string(1, c);
+            auto key = std::string(1, *it);
             if (found) {
                 if (FORMATS.count(key) > 0) {
-                    m_formats.push_back(FORMATS.at(key)(""));
+                    std::stringstream fmt; 
+                    if (it+1 < pattern.end() && *(it+1) == '{') {
+                        bool fmt_found = false;
+                        for (it = it+2; it < pattern.end(); ++it)
+                        {
+                            if (*it == '}') {
+                                fmt_found = true;
+                                break;
+                            } else {
+                                fmt << *it;
+                            }
+                        }
+                        if (!fmt_found) {
+                            fmt.clear();
+                            std::cout << "parse_error: open {}" << std::endl;
+                        }
+                    }
+
+                    m_formats.push_back(FORMATS.at(key)(fmt.str()));
                     found = false;
                 } else {
-                    std::cout  << "parse_error: invalid item"  << c << std::endl;
+                    std::cout  << "parse_error: invalid item"  << *it << std::endl;
                     break;
                 }
             } else {
-                m_formats.push_back(LogFormatter::Item::ptr(new StringLogItem(std::string(1, c))));
+                m_formats.push_back(LogFormatter::Item::ptr(new StringLogItem(key)));
             }
         }
     }

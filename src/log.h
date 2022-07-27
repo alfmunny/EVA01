@@ -20,7 +20,7 @@
 #define EVA_LOG_ERROR(logger) EVA_LOG_LEVEL(logger, LogLevel::ERROR)
 #define EVA_LOG_FATAL(logger) EVA_LOG_LEVEL(logger, LogLevel::FATAL)
 
-constexpr const char* DEFAULT_PATTERN = "%d%T%f%T%l%T[%p]%T[%c]%T%m%n";
+constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T%f%T%l%T[%p]%T[%c]%T%m%n";
 
 class LogLevel {
 public:
