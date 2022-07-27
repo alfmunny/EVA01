@@ -5,6 +5,9 @@
 #include <memory>
 #include <map>
 #include <sstream>
+#include <time.h>
+#include <vector>
+#include <functional>
 
 
 #define EVA_LOG_LEVEL(logger, level)                            \
@@ -70,12 +73,21 @@ public:
     using ptr = std::shared_ptr<LogFormatter>;
     LogFormatter(const std::string& pattern);
     std::string format(LogEvent::ptr event) const;
+    void format(std::ostream& os, LogEvent::ptr event) const;
+
+    class Item {
+    public:
+        using ptr = std::shared_ptr<Item>;
+        virtual ~Item() = default;
+        virtual void format(std::ostream& os, LogEvent::ptr event) const = 0;
+    };
 
 private:
-    static const std::map<char, bool> FORMATS;
-    std::list<char> m_formats;
+    static const std::map<std::string, std::function<LogFormatter::Item::ptr(const std::string& str)>> FORMATS;
+    std::vector<Item::ptr> m_formats;
     std::string m_pattern;
 };
+
 
 class LogAppender {
 public:
