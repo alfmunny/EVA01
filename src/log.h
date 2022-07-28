@@ -88,8 +88,11 @@ public:
     };
 
 private:
-    static const std::map<std::string, std::function<LogFormatter::Item::ptr(const std::string& str)>> FORMATS;
-    std::vector<Item::ptr> m_formats;
+    void initItems();
+
+private:
+    static const std::map<std::string, std::function<Item::ptr(const std::string& str)>> FORMATS;
+    std::vector<Item::ptr> m_items;
     std::string m_pattern;
 };
 

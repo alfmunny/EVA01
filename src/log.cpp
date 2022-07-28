@@ -159,14 +159,14 @@ private:
 
 std::string LogFormatter::format(LogEvent::ptr event) const {
     std::stringstream ss;
-    for (auto& item : m_formats) {
+    for (auto& item : m_items) {
         item->format(ss, event);
     }
     return ss.str();
 }
 
 void LogFormatter::format(std::ostream& os, LogEvent::ptr event) const {
-    for (auto& item : m_formats) {
+    for (auto& item : m_items) {
         item->format(os, event);
     }
 }
@@ -264,9 +264,12 @@ void FileLogAppender::log(LogEvent::ptr event) {
 
 LogFormatter::LogFormatter(const std::string& pattern) 
     : m_pattern(pattern) {
+        initItems();
+}
 
+void LogFormatter::initItems() {
     bool found = false;
-    for (auto it = pattern.begin(); it < pattern.end(); ++it) {
+    for (auto it = m_pattern.begin(); it < m_pattern.end(); ++it) {
         if (*it == '%') {
             if (found) {
                 std::cout  << "parse_error: "  << *it << std::endl;
@@ -279,9 +282,9 @@ LogFormatter::LogFormatter(const std::string& pattern)
             if (found) {
                 if (FORMATS.count(key) > 0) {
                     std::stringstream fmt; 
-                    if (it+1 < pattern.end() && *(it+1) == '{') {
+                    if (it+1 < m_pattern.end() && *(it+1) == '{') {
                         bool fmt_found = false;
-                        for (it = it+2; it < pattern.end(); ++it)
+                        for (it = it+2; it < m_pattern.end(); ++it)
                         {
                             if (*it == '}') {
                                 fmt_found = true;
@@ -296,14 +299,14 @@ LogFormatter::LogFormatter(const std::string& pattern)
                         }
                     }
 
-                    m_formats.push_back(FORMATS.at(key)(fmt.str()));
+                    m_items.push_back(FORMATS.at(key)(fmt.str()));
                     found = false;
                 } else {
                     std::cout  << "parse_error: invalid item"  << *it << std::endl;
                     break;
                 }
             } else {
-                m_formats.push_back(LogFormatter::Item::ptr(new StringLogItem(key)));
+                m_items.push_back(LogFormatter::Item::ptr(new StringLogItem(key)));
             }
         }
     }
