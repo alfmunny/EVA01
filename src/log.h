@@ -20,7 +20,7 @@
 #define EVA_LOG_ERROR(logger) EVA_LOG_LEVEL(logger, LogLevel::ERROR)
 #define EVA_LOG_FATAL(logger) EVA_LOG_LEVEL(logger, LogLevel::FATAL)
 
-constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T%f%T%l%T[%p]%T[%c]%T%m%n";
+constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T%f{5}%T%l%T[%p]%T[%c]%T%m%n";
 
 class LogLevel {
 public:
@@ -45,7 +45,7 @@ public:
 
     LogEvent(std::shared_ptr<Logger> logger, const char* file, int32_t line, uint64_t time, 
              LogLevel::Level level, uint32_t thread_id, 
-             uint32_t fiber_id);
+             uint32_t fiber_id, const std::string& message = "");
 
     inline const char* getFile() const { return m_file; }
     inline int32_t getLine() const { return m_line; }

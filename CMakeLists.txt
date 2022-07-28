@@ -34,7 +34,7 @@ add_dependencies(example_logging eva01)
 target_link_libraries(example_logging ${LIBS})
 
 add_custom_target(test
-    COMMAND test_log
+    COMMAND test_log -d
     WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
     )
 

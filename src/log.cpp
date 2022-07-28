@@ -27,11 +27,11 @@ std::string LogLevel::toString(LogLevel::Level level) {
 };
 
 LogEvent::LogEvent(Logger::ptr logger, const char* file, int32_t line, uint64_t time, 
-             LogLevel::Level level, uint32_t thread_id, uint32_t fiber_id)
+             LogLevel::Level level, uint32_t thread_id, uint32_t fiber_id, const std::string& message)
     : m_file(file), m_line(line), m_time(time)
     , m_level(level), m_thread_id(thread_id), m_fiber_id(fiber_id)
     , m_logger(logger) {
-
+        m_ss << message;
 }
 
 class DateLogItem : public LogFormatter::Item {
@@ -116,12 +116,22 @@ public:
 
 class FileLogItem : public LogFormatter::Item {
 public:
-    FileLogItem(const std::string& pattern = "") {
+    FileLogItem(const std::string& pattern = "")
+        : m_pattern(pattern) {
     }
 
     void format(std::ostream& os, LogEvent::ptr event) const {
-        os << event->getFile();
+        int depth = atoi(m_pattern.c_str());
+        auto* it = event->getFile();
+        while (*it != '\n' && depth != 0) {
+            if (*it == '/') --depth;
+            ++it;
+        }
+        os << it;
     }
+
+private:
+    const std::string m_pattern;
 };
 
 class ThreadIdLogItem : public LogFormatter::Item {
@@ -144,7 +154,7 @@ public:
         os << m_pattern;
     }
 private:
-    std::string m_pattern;
+    const std::string m_pattern;
 };
 
 std::string LogFormatter::format(LogEvent::ptr event) const {
