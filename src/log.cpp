@@ -227,7 +227,7 @@ void Logger::clearLogAppenders() {
 
 void StdoutLogAppender::log(LogEvent::ptr event) {
     if (event->getLevel() >= m_level) {
-        std::cout << m_formatter->format(event);
+        m_formatter->format(std::cout, event);
     }
 }
 
@@ -241,6 +241,25 @@ std::string StreamLogAppender::flush() {
     auto s = m_ss.str(); 
     m_ss.clear();
     return s;
+}
+
+FileLogAppender::FileLogAppender(const std::string& fname) 
+    : m_fname(fname) {
+    reopen();
+}
+
+bool FileLogAppender::reopen() {
+    if(m_fstream) {
+        m_fstream.close();
+    }
+    m_fstream.open(m_fname.c_str(), std::ios::app);
+    return !!m_fstream;
+}
+
+void FileLogAppender::log(LogEvent::ptr event) {
+    if (event->getLevel() >= m_level) {
+        m_formatter->format(m_fstream, event);
+    }
 }
 
 LogFormatter::LogFormatter(const std::string& pattern) 

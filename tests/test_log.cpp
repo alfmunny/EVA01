@@ -58,5 +58,22 @@ TEST_CASE("Test Logger") {
         EVA_LOG_FATAL(logger) << "Hello FATAL message";
         CHECK(appender->flush().find("Hello FATAL message") != std::string::npos);
     }
+
+    SUBCASE("Test FileLogAppender") {
+        auto fappender = FileLogAppender::ptr(new FileLogAppender("test.log"));
+        fappender->setFormatter("%d{%Y-%m-%d %a %H:%M:%S}%T%f{5}%T[%p]%T[%c]%T%m%n");
+        logger->addLogAppender(fappender);
+        EVA_LOG_DEBUG(logger) << "Hello file log appender";
+        fappender->reopen();
+        std::ifstream testfile;
+        testfile.open("test.log");
+        CHECK(testfile.is_open());
+        char buffer[256];
+        testfile.getline(buffer, 256);
+        CHECK(fappender->getFormatter()->format(EVA_LOG_EVENT(logger, fappender->getLevel(), "Hello file log appender")) == std::string(buffer) + '\n');
+        testfile.close();
+        std::remove("test.log");
+    }
+
 }
 

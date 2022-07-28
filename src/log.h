@@ -7,12 +7,17 @@
 #include <sstream>
 #include <time.h>
 #include <vector>
+#include <fstream>
 #include <functional>
 
-
+#define EVA_LOG_EVENT(logger, level, message) \
+    LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0, message))
+    
 #define EVA_LOG_LEVEL(logger, level)                            \
     if (logger->getLevel() <= level)                             \
         LogWrapper(logger, LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0))).getSS()
+
+
 
 #define EVA_LOG_DEBUG(logger) EVA_LOG_LEVEL(logger, LogLevel::DEBUG)
 #define EVA_LOG_INFO(logger) EVA_LOG_LEVEL(logger, LogLevel::INFO)
@@ -96,6 +101,9 @@ public:
     virtual void log(LogEvent::ptr event) = 0;
 
     inline void setFormatter(LogFormatter::ptr formatter) { m_formatter = formatter; }
+    inline void setFormatter(const std::string& pattern) { 
+        m_formatter = LogFormatter::ptr(new LogFormatter(pattern)); 
+    }
     inline LogFormatter::ptr getFormatter() { return m_formatter; }
 
     inline void setLevel(LogLevel::Level level) { m_level = level; }
@@ -108,17 +116,32 @@ protected:
 
 class StdoutLogAppender : public LogAppender {
 public:
+    using ptr = std::shared_ptr<StdoutLogAppender>;
     void log(LogEvent::ptr event) override;
+};
+
+class FileLogAppender : public LogAppender {
+public:
+    using ptr = std::shared_ptr<FileLogAppender>;
+    FileLogAppender(const std::string& m_fname);
+    void log(LogEvent::ptr event) override;
+    bool reopen();
+
+private:
+    const std::string m_fname;
+    std::ofstream m_fstream;
 };
 
 class StreamLogAppender : public LogAppender {
 public:
+    using ptr = std::shared_ptr<StreamLogAppender>;
     void log(LogEvent::ptr event) override;
     std::string flush();
 
 private:
     std::stringstream  m_ss;
 };
+
 
 class Logger {
 
