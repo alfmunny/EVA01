@@ -18,20 +18,34 @@ set(LIB_SRC
     src/log.cpp
     src/thread.cpp
     src/util.cpp
+    src/semaphore.cpp
+    src/noncopyable.h
     )
 
 add_library(eva01 SHARED ${LIB_SRC})
-
 
 set(LIBS
     eva01
     pthread
     )
 
+# Tests
 add_executable(test_log tests/test_log.cpp)
 add_dependencies(test_log eva01)
 target_link_libraries(test_log ${LIBS})
 
+add_executable(test_thread tests/test_thread.cpp)
+add_dependencies(test_thread eva01)
+target_link_libraries(test_thread ${LIBS})
+
+add_custom_target(test
+    COMMAND test_log -d
+    COMMAND test_thread -d
+    WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
+    )
+
+
+# Examples
 add_executable(example_logging examples/logging.cpp)
 add_dependencies(example_logging eva01)
 target_link_libraries(example_logging ${LIBS})
@@ -39,11 +53,6 @@ target_link_libraries(example_logging ${LIBS})
 add_executable(example_thread examples/thread.cpp)
 add_dependencies(example_thread eva01)
 target_link_libraries(example_thread ${LIBS})
-
-add_custom_target(test
-    COMMAND test_log -d
-    WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
-    )
 
 add_custom_target(run
     COMMAND example_logging

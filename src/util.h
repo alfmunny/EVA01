@@ -8,4 +8,6 @@ namespace eva01 {
 
 pid_t GetThreadId();
 
+void SleepMs(int ms);
+
 }
