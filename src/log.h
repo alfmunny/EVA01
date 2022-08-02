@@ -10,14 +10,14 @@
 #include <fstream>
 #include <functional>
 
+namespace eva01 {
+
 #define EVA_LOG_EVENT(logger, level, message) \
     LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0, message))
     
 #define EVA_LOG_LEVEL(logger, level)                            \
     if (logger->getLevel() <= level)                             \
         LogWrapper(logger, LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0))).getSS()
-
-
 
 #define EVA_LOG_DEBUG(logger) EVA_LOG_LEVEL(logger, LogLevel::DEBUG)
 #define EVA_LOG_INFO(logger) EVA_LOG_LEVEL(logger, LogLevel::INFO)
@@ -169,7 +169,7 @@ public:
     inline void setLevel(LogLevel::Level level) { m_level = level; }
     inline LogLevel::Level getLevel() const { return m_level; }
 
-    inline std::string_view getName() const { return m_name; }
+    inline std::string getName() const { return m_name; }
 
     inline void info(LogEvent::ptr event) { log(LogLevel::Level::INFO, event); }
     inline void debug(LogEvent::ptr event) { log(LogLevel::Level::DEBUG, event); }
@@ -208,3 +208,4 @@ private:
 };
 
 #endif
+}

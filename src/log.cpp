@@ -4,6 +4,8 @@
 #include <time.h>
 
 
+namespace eva01 {
+
 std::string LogLevel::toString(LogLevel::Level level) {
     std::stringstream ss;
     switch (level) {
@@ -312,3 +314,4 @@ void LogFormatter::initItems() {
     }
 }
 
+}

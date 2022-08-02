@@ -3,6 +3,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
+namespace eva01 {
+
 TEST_CASE("LogEvent") {
 
 }
@@ -77,3 +79,4 @@ TEST_CASE("Test Logger") {
 
 }
 
+}
