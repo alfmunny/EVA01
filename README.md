@@ -14,7 +14,10 @@ A simple server framework written in C++
         """
         Use log4j-like pattern:
 
-        "%d{%Y-%m-%d %a %H:%M:%S}%T%f{5}%T%l%T[%p]%T[%c]%T%m%n";
+        {%Y-%m-%d %a %H:%M:%S}
+
+        "%d%T%f%T%l%T[%p]%T[%c]%T%m%n";
+
 
         Every pattern has also has sub format in {}
 
