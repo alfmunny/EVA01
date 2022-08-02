@@ -9,6 +9,7 @@
 #include <vector>
 #include <fstream>
 #include <functional>
+#include "src/util.h"
 
 namespace eva01 {
 
@@ -17,7 +18,7 @@ namespace eva01 {
     
 #define EVA_LOG_LEVEL(logger, level)                            \
     if (logger->getLevel() <= level)                             \
-        LogWrapper(logger, LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0))).getSS()
+        LogWrapper(logger, LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, GetThreadId(), 0))).getSS()
 
 #define EVA_LOG_DEBUG(logger) EVA_LOG_LEVEL(logger, LogLevel::DEBUG)
 #define EVA_LOG_INFO(logger) EVA_LOG_LEVEL(logger, LogLevel::INFO)
@@ -25,7 +26,7 @@ namespace eva01 {
 #define EVA_LOG_ERROR(logger) EVA_LOG_LEVEL(logger, LogLevel::ERROR)
 #define EVA_LOG_FATAL(logger) EVA_LOG_LEVEL(logger, LogLevel::FATAL)
 
-constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T%f{5}%T%l%T[%p]%T[%c]%T%m%n";
+constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T%f{5}%T%l%T[%p]%T[%c]%T%t%T%m%n";
 
 class LogLevel {
 public:

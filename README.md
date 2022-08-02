@@ -34,3 +34,9 @@ A simple server framework written in C++
         %F, // F: fiber id
         %N, // N: thread name
         """
+
+## Thread
+
+- Thread class using pthread
+    - Thread name
+    - Thread id

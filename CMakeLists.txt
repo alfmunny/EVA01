@@ -3,19 +3,21 @@ project(eva01)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O0 -ggdb -std=c++17 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-builtin-macro-redefined")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O0 -ggdb -std=c++14 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-builtin-macro-redefined")
 
 # set(BOOST_ROOT /opt/homebrew/Cellar/boost/1.76.0)
 # find_package(Boost)
 
-# find_library(PTHREAD pthread)
+find_library(PTHREAD pthread)
 
 include_directories(.)
-# include_directories(~/user/local/include)
-# link_directories(~/user/local/lib)
+include_directories(~/user/local/include)
+link_directories(~/user/local/lib)
 
 set(LIB_SRC
     src/log.cpp
+    src/thread.cpp
+    src/util.cpp
     )
 
 add_library(eva01 SHARED ${LIB_SRC})
@@ -23,6 +25,7 @@ add_library(eva01 SHARED ${LIB_SRC})
 
 set(LIBS
     eva01
+    pthread
     )
 
 add_executable(test_log tests/test_log.cpp)
@@ -33,13 +36,18 @@ add_executable(example_logging examples/logging.cpp)
 add_dependencies(example_logging eva01)
 target_link_libraries(example_logging ${LIBS})
 
+add_executable(example_thread examples/thread.cpp)
+add_dependencies(example_thread eva01)
+target_link_libraries(example_thread ${LIBS})
+
 add_custom_target(test
     COMMAND test_log -d
     WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
     )
 
-add_custom_target(example
+add_custom_target(run
     COMMAND example_logging
+    COMMAND example_thread
     WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
     )
 
