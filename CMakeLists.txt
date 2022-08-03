@@ -20,6 +20,7 @@ set(LIB_SRC
     src/util.cpp
     src/semaphore.cpp
     src/noncopyable.h
+    src/mutex.h
     )
 
 add_library(eva01 SHARED ${LIB_SRC})
@@ -38,9 +39,14 @@ add_executable(test_thread tests/test_thread.cpp)
 add_dependencies(test_thread eva01)
 target_link_libraries(test_thread ${LIBS})
 
+add_executable(test_mutex tests/test_mutex.cpp)
+add_dependencies(test_mutex eva01)
+target_link_libraries(test_mutex ${LIBS})
+
 add_custom_target(test
     COMMAND test_log -d
     COMMAND test_thread -d
+    COMMAND test_mutex -d
     WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
     )
 

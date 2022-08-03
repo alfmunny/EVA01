@@ -102,7 +102,7 @@ public:
     }
 
     void format(std::ostream& os, LogEvent::ptr event) const {
-        os << "\n";
+        os << std::endl;
     }
 };
 
@@ -205,6 +205,7 @@ Logger::Logger(const std::string& name, LogLevel::Level level, const std::string
 }
 
 void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
+    MutexGuard<Mutex> lk(m_mtx);
     if (level >= m_level) {
         for (auto appender : m_appenders) {
             appender->log(event);
@@ -213,6 +214,7 @@ void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
 }
 
 void Logger::addLogAppender(LogAppender::ptr appender) {
+    MutexGuard<Mutex> lk(m_mtx);
     m_appenders.push_back(appender);
     if (!appender->getFormatter()) {
         appender->setFormatter(m_formatter);
@@ -220,26 +222,31 @@ void Logger::addLogAppender(LogAppender::ptr appender) {
 }
 
 void Logger::delLogAppender(LogAppender::ptr appender) {
+    MutexGuard<Mutex> lk(m_mtx);
     m_appenders.remove(appender);
 }
 
 void Logger::clearLogAppenders() {
+    MutexGuard<Mutex> lk(m_mtx);
     m_appenders.clear();
 }
 
 void StdoutLogAppender::log(LogEvent::ptr event) {
+    MutexGuard<Mutex> lk(m_mtx);
     if (event->getLevel() >= m_level) {
         m_formatter->format(std::cout, event);
     }
 }
 
 void StreamLogAppender::log(LogEvent::ptr event) {
+    MutexGuard<Mutex> lk(m_mtx);
     if (event->getLevel() >= m_level) {
         m_ss << m_formatter->format(event);
     }
 }
 
 std::string StreamLogAppender::flush() { 
+    MutexGuard<Mutex> lk(m_mtx);
     auto s = m_ss.str(); 
     m_ss.clear();
     return s;
@@ -251,6 +258,7 @@ FileLogAppender::FileLogAppender(const std::string& fname)
 }
 
 bool FileLogAppender::reopen() {
+    MutexGuard<Mutex> lk(m_mtx);
     if(m_fstream) {
         m_fstream.close();
     }
@@ -259,6 +267,7 @@ bool FileLogAppender::reopen() {
 }
 
 void FileLogAppender::log(LogEvent::ptr event) {
+    MutexGuard<Mutex> lk(m_mtx);
     if (event->getLevel() >= m_level) {
         m_formatter->format(m_fstream, event);
     }
