@@ -15,9 +15,11 @@ void func1() {
 
 int main() {
     g_logger->addLogAppender(LogAppender::ptr(new StdoutLogAppender()));
+    g_logger->addLogAppender(LogAppender::ptr(new FileLogAppender("test.log")));
+    g_logger->addLogAppender(LogAppender::ptr(new FileLogAppender("test.log")));
 
     std::vector<Thread::ptr> threads;
-    int num = 1;
+    int num = 5;
     for (int i =  0; i < num; ++i) {
         threads.push_back(Thread::ptr(new Thread(*func1, "thread_" + std::to_string(i))));
     }

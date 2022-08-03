@@ -10,6 +10,7 @@
 #include <fstream>
 #include <functional>
 #include "src/util.h"
+#include "src/mutex.h"
 
 namespace eva01 {
 
@@ -116,6 +117,7 @@ public:
 protected:
     LogFormatter::ptr m_formatter;
     LogLevel::Level m_level = LogLevel::Level::DEBUG;
+    Mutex m_mtx;
 };
 
 class StdoutLogAppender : public LogAppender {
@@ -187,6 +189,7 @@ private:
     LogLevel::Level m_level;
     LogFormatter::ptr m_formatter;
     std::list<LogAppender::ptr> m_appenders;
+    Mutex m_mtx;
 };
 
 class LogWrapper {

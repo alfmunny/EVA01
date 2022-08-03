@@ -20,6 +20,7 @@ set(LIB_SRC
     src/util.cpp
     src/semaphore.cpp
     src/noncopyable.h
+    src/mutex.h
     )
 
 add_library(eva01 SHARED ${LIB_SRC})
