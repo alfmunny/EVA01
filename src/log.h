@@ -11,6 +11,7 @@
 #include <functional>
 #include "src/util.h"
 #include "src/mutex.h"
+#include "src/singleton.h"
 
 namespace eva01 {
 
@@ -26,6 +27,9 @@ namespace eva01 {
 #define EVA_LOG_WARN(logger) EVA_LOG_LEVEL(logger, LogLevel::WARN)
 #define EVA_LOG_ERROR(logger) EVA_LOG_LEVEL(logger, LogLevel::ERROR)
 #define EVA_LOG_FATAL(logger) EVA_LOG_LEVEL(logger, LogLevel::FATAL)
+
+#define EVA_ROOT_LOGGER() LoggerManager::Instance::Get()->getRootLogger();
+#define EVA_LOGGER(name) LoggerManager::Instance::Get()->getLogger(name);
 
 constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T%f{5}%T%l%T[%p]%T[%c]%T%t%T%m%n";
 
@@ -211,5 +215,23 @@ private:
     LogEvent::ptr m_event;
 };
 
-#endif
+
+class LoggerManager {
+public:
+    using Instance = Singleton<LoggerManager>;
+    LoggerManager();
+    ~LoggerManager() = default;
+
+    Logger::ptr getLogger(const std::string& name);
+    Logger::ptr getRootLogger() { return m_root_logger; }
+
+private:
+    void init();
+private:
+    std::map<std::string, Logger::ptr> m_loggers;
+    Logger::ptr m_root_logger;
+    Mutex m_mtx;
+};
+
 }
+#endif
