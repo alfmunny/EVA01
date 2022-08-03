@@ -76,7 +76,11 @@ TEST_CASE("Test Logger") {
         testfile.close();
         std::remove("test.log");
     }
+}
 
+TEST_CASE("Test LoggerManager") {
+    auto logger = EVA_ROOT_LOGGER();
+    EVA_LOG_INFO(logger) << "Hello LoggerManager";
 }
 
 }

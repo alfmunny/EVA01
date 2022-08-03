@@ -323,4 +323,27 @@ void LogFormatter::initItems() {
     }
 }
 
+LoggerManager::LoggerManager()
+    : m_root_logger(std::make_shared<Logger>()){
+    m_root_logger->addLogAppender(LogAppender::ptr(new StdoutLogAppender));
+    m_loggers[m_root_logger->getName()] = m_root_logger;
+    init();
+}
+
+void LoggerManager::init() {
+
+
+}
+
+Logger::ptr LoggerManager::getLogger(const std::string& name) {
+    MutexGuard<Mutex> lk(m_mtx);
+    auto it = m_loggers.find(name);
+    if (it != m_loggers.end()) {
+        return it->second;
+    }
+    auto logger = std::make_shared<Logger>(name);
+    m_loggers[name] = logger;
+    return logger;
+}
+
 }
