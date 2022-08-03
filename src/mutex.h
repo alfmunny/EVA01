@@ -1,6 +1,7 @@
 #pragma once
 #include "src/noncopyable.h"
 #include <pthread.h>
+#include <assert.h>
 #include "src/util.h"
 
 namespace eva01 {
@@ -11,6 +12,7 @@ public:
     }
 
     ~Mutex() {
+        assert(m_thread == 0);
         pthread_mutex_destroy(&m_mutex);
     }
 
@@ -22,6 +24,11 @@ public:
     void unlock() { 
         m_thread = 0;
         pthread_mutex_unlock(&m_mutex); 
+    }
+
+    bool isLockedByThisThread()
+    {
+        return m_thread == GetThreadId();
     }
 
 private:
