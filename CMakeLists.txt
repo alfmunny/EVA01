@@ -19,6 +19,7 @@ set(LIB_SRC
     src/thread.cpp
     src/util.cpp
     src/semaphore.cpp
+    src/fiber.cpp
     src/noncopyable.h
     src/mutex.h
     )
@@ -43,10 +44,15 @@ add_executable(test_mutex tests/test_mutex.cpp)
 add_dependencies(test_mutex eva01)
 target_link_libraries(test_mutex ${LIBS})
 
+add_executable(test_fiber tests/test_fiber.cpp)
+add_dependencies(test_fiber eva01)
+target_link_libraries(test_fiber ${LIBS})
+
 add_custom_target(test
     COMMAND test_log -d
     COMMAND test_thread -d
     COMMAND test_mutex -d
+    COMMAND test_fiber -d
     WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
     )
 

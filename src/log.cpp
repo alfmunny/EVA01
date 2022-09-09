@@ -342,6 +342,7 @@ Logger::ptr LoggerManager::getLogger(const std::string& name) {
         return it->second;
     }
     auto logger = std::make_shared<Logger>(name);
+    logger->addLogAppender(LogAppender::ptr(new StdoutLogAppender));
     m_loggers[name] = logger;
     return logger;
 }

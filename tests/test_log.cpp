@@ -81,6 +81,8 @@ TEST_CASE("Test Logger") {
 TEST_CASE("Test LoggerManager") {
     auto logger = EVA_ROOT_LOGGER();
     EVA_LOG_INFO(logger) << "Hello LoggerManager";
+    auto system_logger = EVA_LOGGER("system");
+    EVA_LOG_INFO(system_logger) << "Hello System Logger";
 }
 
 }
