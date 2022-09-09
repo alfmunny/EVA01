@@ -7,6 +7,7 @@
 namespace eva01 {
 
 static std::atomic<uint64_t> s_fiber_id { 0 };
+static std::atomic<uint64_t> s_fiber_count { 0 };
 
 static Logger::ptr g_logger = EVA_LOGGER("system");
 static thread_local Fiber* t_fiber = nullptr;
@@ -18,6 +19,8 @@ Fiber::Fiber(std::function<void()> func, bool is_main):
     m_main(is_main) {
 
     ASSERT(t_main_fiber);
+
+    ++s_fiber_count;
 
     if(getcontext(&m_ctx)) {
         ASSERT(false);
@@ -34,8 +37,13 @@ Fiber::Fiber(std::function<void()> func, bool is_main):
 
 Fiber::Fiber()
 {
+    // Make sure no main fiber 
+    ASSERT(!t_main_fiber);
     m_main = true;
     m_state = RUNNING;
+
+    ++s_fiber_count;
+
     if(getcontext(&m_ctx)) {
         ASSERT(false);
     };
@@ -48,6 +56,7 @@ Fiber::Fiber()
 }
 
 Fiber::~Fiber() {
+    --s_fiber_count;
     EVA_LOG_DEBUG(g_logger) << "~Fiber id: " << m_id;
 }
 
@@ -57,6 +66,21 @@ void Fiber::MakeMain() {
     }
     t_main_fiber = Fiber::ptr(new Fiber);
     t_fiber = t_main_fiber.get();
+}
+
+void Fiber::call() {
+    if (m_main && t_fiber == t_main_fiber.get()) {
+        return;
+    }
+
+    ASSERT(m_state != RUNNING && m_state != TERM);
+
+    t_fiber = this;
+    m_state = RUNNING;
+    
+    if(swapcontext(&t_main_fiber->m_ctx, &m_ctx)) {
+        ASSERT(false);
+    }
 }
 
 void Fiber::Yield() {
@@ -74,20 +98,19 @@ void Fiber::Yield() {
 
 }
 
-void Fiber::call() {
-    if (m_main && t_fiber == t_main_fiber.get()) {
-        return;
+Fiber::ptr Fiber::GetMainFiber() {
+    if (t_main_fiber) {
+        return t_main_fiber;
     }
-
-    ASSERT(m_state != RUNNING && m_state != TERM);
-
-    t_fiber = this;
-    m_state = RUNNING;
-    
-    if(swapcontext(&t_main_fiber->m_ctx, &m_ctx)) {
-        ASSERT(false);
+    else {
+        return nullptr;
     }
 }
+
+uint64_t GetTotalCount() {
+    return s_fiber_count;
+}
+
 
 Fiber::ptr Fiber::GetThis() {
     if (!t_fiber) {

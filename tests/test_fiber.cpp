@@ -30,19 +30,21 @@ void fiber2() {
 }
 
 void run_fiber() {
-    Fiber::MakeMain();
-    Fiber::ptr f1 = Fiber::ptr(new Fiber(&fiber1));
-    Fiber::ptr f2 = Fiber::ptr(new Fiber(&fiber2));
-
-    while (f1->getState() != Fiber::TERM || f2->getState() != Fiber::TERM) {
-        if (f1->getState() != Fiber::TERM) {
-            f1->call();
+    {
+        Fiber::GetThis();
+        Fiber::ptr f1 = Fiber::ptr(new Fiber(&fiber1));
+        Fiber::ptr f2 = Fiber::ptr(new Fiber(&fiber2));
+        while (f1->getState() != Fiber::TERM || f2->getState() != Fiber::TERM) {
+            if (f1->getState() != Fiber::TERM) {
+                f1->call();
+            }
+            if (f2->getState() != Fiber::TERM) {
+                f2->call();
+            }
         }
-        if (f2->getState() != Fiber::TERM) {
-            f2->call();
-        }
+        EVA_LOG_DEBUG(logger) << "main fiber finished";
     }
-    EVA_LOG_DEBUG(logger) << "main fiber finished";
+    EVA_LOG_DEBUG(logger) << "out of main fiber scope";
 }
 
 TEST_CASE("Test Fiber") {
