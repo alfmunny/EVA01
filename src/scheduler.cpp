@@ -18,20 +18,14 @@ Scheduler::Scheduler(int threads, const std::string& name)
     ASSERT(threads > 0);
 
     Thread::SetName(m_name);
-    Fiber::GetThis();
-
-    EVA_LOG_DEBUG(g_logger) << "Main fiber create";
-    m_main_fiber.reset(new Fiber(std::bind(&Scheduler::run, this)));
-    t_fiber = m_main_fiber.get();
     m_root_thread = GetThreadId();
-
-    --threads;
     m_thread_count = threads;
 }
 
 Scheduler::~Scheduler() {
+    MutexGuard<Mutex> lock(m_mutex);
     ASSERT(!m_stopping);
-
+    ASSERT(m_stopped);
 }
 
 void Scheduler::start() {
@@ -40,98 +34,126 @@ void Scheduler::start() {
         return;
     }
     m_stopped = false;
-    //ASSERT(m_threads.empty());
+
+    ASSERT(m_threads.empty());
 
     m_threads.resize(m_thread_count);
 
     for (size_t i = 0; i < m_thread_count; ++i) {
-        auto thr = Thread::ptr(new Thread(
+        m_threads[i].reset(new Thread(
                     std::bind(&Scheduler::run, this), 
                     m_name + "_" + std::to_string(i)));
-        m_threads.push_back(thr);
     }
 }
 
 void Scheduler::stop() {
-    ASSERT(!m_stopped);
-    ASSERT(!m_stopping);
+    {
+        MutexGuard<Mutex> lk(m_mutex);
+        m_stopping = true;
+    }
 
-    m_stopping = true;
-
-    m_main_fiber->call();
-
-    EVA_LOG_DEBUG(g_logger) << "call passed";
-
-    tickle();
-
+    // Wake up all threads to catch up the new m_stopping flag.
     for (size_t i = 0; i < m_thread_count; ++i) {
         tickle();
     }
 
-
+    // Join all threads.
     for (auto& it : m_threads) {
         it->join();
     }
 
-    m_stopping = false;
-    m_stopped = true;
+    {
+        MutexGuard<Mutex> lk(m_mutex);
+        m_threads.clear();
+        m_stopping = false;
+        m_stopped = true;
+    }
 }
 
 void Scheduler::run() {
-    t_fiber = Fiber::GetThis().get();
+    t_fiber = Fiber::GetThis().get(); // initialize main fiber in this thread.
     t_scheduler = this;
 
-    ASSERT(!m_stopped);
-
-    Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this)));
-    Task tk;
+    Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this))); // idle fiber for waiting on the task
+    Fiber::ptr func_fiber(new Fiber([](){})); // fiber to do the task, avoid creating new fiber for each new std::function
+    Task tk; // to register the next task, avoid creating a new task each loop.
 
     while (true) {
         tk.reset();
         bool need_tickle = false;
-        // find out task
+
+        // find out todo task
         {
             MutexGuard<Mutex> lk(m_mutex);
             auto it = m_tasks.begin();
             while (it != m_tasks.end()) {
+                // Skip the task, if task is assigned to a specific thread
                 if (it->thread_id != -1 && it->thread_id != GetThreadId()) {
                     continue;
                 }
-
-                tk = *it;
+                
+                tk = std::move(*it);
                 m_tasks.erase(it);
-                need_tickle = true;
                 break;
             }
-
+            need_tickle = !m_tasks.empty();
         }
 
+        // This thread will be working, m_active_threads has to be increased before tickle()
+        // See should_running().
+        // The other threads need to know if there is still working threads.
+        // If yes, the other threads will wait because m_active_threads != 0, even stop() is called, until all work is done.
+        if (tk.fiber || tk.func) {
+            ++m_active_threads;            
+        }
+
+        // If there is still tasks in queue,
+        // wakeup the others threads
         if (need_tickle) {
             tickle();
         }
 
+        // Schedule task
+        // If the task is a fiber
         if (tk.fiber) {
+            tk.fiber->call(); // Do the task
+            --m_active_threads; // Back from the task
 
-            tk.fiber->call();
-
-            if (tk.fiber->getState() == Fiber::SUSPEND ||
-                tk.fiber->getState() == Fiber::READY) {
-                schedule(tk.fiber);
-            } else {
-                // Task is done. Nothing to do
-            }
+            // Reschedule if the task is not done
+            if (tk.fiber->getState() == Fiber::SUSPEND) {
+                schedule(std::move(tk.fiber));
+            } 
             tk.reset();
-        } else {
+        } 
+        // If the task is a function
+        else if (tk.func) {
+            func_fiber->reset(std::move(tk.func));
+
+            func_fiber->call(); // Do the task
+            --m_active_threads; // Back from the task
+
+            // Reschedule if the task is not done
+            if (func_fiber->getState() == Fiber::SUSPEND) {
+                schedule(std::move(func_fiber));
+            } 
+
+            tk.reset();
+            func_fiber->reset(nullptr);
+        }
+        else {
+            // Stopping and break out run.
+            // The idle fiber has terminated.
             if (idle_fiber->getState() == Fiber::TERM) {
                 EVA_LOG_DEBUG(g_logger) << "idle fiber terminate";
                 break;
             }
-            idle_fiber->call();
-        }
-        // schedule task
-    }
-    EVA_LOG_DEBUG(g_logger) << "run finished";
 
+            // Trap into idle fiber.
+            ++m_idle_threads;
+            idle_fiber->call();
+            --m_idle_threads;
+        }
+    }
 }
 
 void Scheduler::tickle() {
@@ -148,7 +170,8 @@ Fiber* Scheduler::GetMainFiber() {
 
 bool Scheduler::should_stop() {
     MutexGuard<Mutex> lk(m_mutex);
-    return m_stopping && m_tasks.empty();
+    // Only to stop when stop is called and all tasks are done.
+    return m_stopping && m_tasks.empty() && m_active_threads == 0;
 }
 
 void Scheduler::idle() {

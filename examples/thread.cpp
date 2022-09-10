@@ -1,22 +1,30 @@
 #include "src/thread.h"
 #include "src/log.h"
+#include "src/mutex.h"
 
 using namespace eva01;
 
-static Logger::ptr g_logger = Logger::ptr(new Logger("root"));
+static Logger::ptr g_logger = EVA_ROOT_LOGGER();
+static Logger::ptr s_logger = EVA_LOGGER("system");
+
+Mutex mu;
+
 
 void func1() {
     int count = 0;
     while (count < 100) {
-        EVA_LOG_INFO(g_logger) << "name: " << Thread::GetName() << " this.thread.name: " << Thread::GetThis()->GetName() << " id: " << Thread::GetThis()->getId() << " Count: " << std::to_string(count);
+        {
+            MutexGuard<Mutex> lk(mu);
+            EVA_LOG_INFO(g_logger)  << " Count: " << std::to_string(count);
+            EVA_LOG_INFO(s_logger)  << " Count: " << std::to_string(count);
+        }
         count++;
     }
 }
 
 int main() {
-    g_logger->addLogAppender(LogAppender::ptr(new StdoutLogAppender()));
     g_logger->addLogAppender(LogAppender::ptr(new FileLogAppender("test.log")));
-    g_logger->addLogAppender(LogAppender::ptr(new FileLogAppender("test.log")));
+    s_logger->addLogAppender(LogAppender::ptr(new FileLogAppender("test.log")));
 
     std::vector<Thread::ptr> threads;
     int num = 5;

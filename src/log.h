@@ -19,7 +19,7 @@
 namespace eva01 {
 
 #define EVA_LOG_EVENT(logger, level, message) \
-    LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0, message))
+    LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0, Thread::GetName(), message))
     
 #define EVA_LOG_LEVEL(logger, level)                            \
     if (logger->getLevel() <= level)                             \
