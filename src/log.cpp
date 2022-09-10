@@ -29,7 +29,7 @@ std::string LogLevel::toString(LogLevel::Level level) {
 };
 
 LogEvent::LogEvent(Logger::ptr logger, const char* file, int32_t line, uint64_t time, 
-             LogLevel::Level level, uint32_t thread_id, uint32_t fiber_id, const std::string& message)
+             LogLevel::Level level, uint32_t thread_id, uint64_t fiber_id, const std::string& message)
     : m_file(file), m_line(line), m_time(time)
     , m_level(level), m_thread_id(thread_id), m_fiber_id(fiber_id)
     , m_logger(logger) {
@@ -146,6 +146,16 @@ public:
     }
 };
 
+class FiberIdLogItem : public LogFormatter::Item {
+public:
+    FiberIdLogItem(const std::string& pattern = "") {
+    }
+
+    void format(std::ostream& os, LogEvent::ptr event) const {
+        os << event->getFiberId();
+    }
+};
+
 class StringLogItem : public LogFormatter::Item {
 public:
     StringLogItem(const std::string& pattern = "") 
@@ -185,6 +195,7 @@ const std::map<std::string, std::function<LogFormatter::Item::ptr(const std::str
     XX(l, LineLogItem),
     XX(T, TabLogItem),
     XX(d, DateLogItem),
+    XX(F, FiberIdLogItem),
     //{'p', [](const std::string& fmt){ return LogFormatter::Item::ptr(new LevelLogItem(fmt)); }}, // p:日志级别
     //{'r', [](const std::string& fmt){ return LogFormatter::Item::ptr(new ElapseLogItem(fmt)); }},// r:累计毫秒数
     //{'c', [](const std::string& fmt){ return LogFormatter::Item::ptr(new NameLogItem(fmt)); }},// c:日志名称

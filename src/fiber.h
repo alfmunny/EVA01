@@ -23,8 +23,8 @@ public:
 
 public:
     Fiber(std::function<void()> func, bool is_main = false);
-    State getState() { return m_state; }
-    uint64_t getId() { return m_id; }
+    State getState() const { return m_state; }
+    uint64_t getId() const { return m_id; }
     ~Fiber();
 
 private:
@@ -40,9 +40,10 @@ public:
     static void MakeMain();
     static void Yield();
     static uint64_t GetTotalCount();
+    static uint64_t GetFiberId();
 
 private:
-    uint64_t m_id;
+    uint64_t m_id = 0;
     ucontext_t m_ctx;
     std::function<void()> m_func;
     bool m_main;
