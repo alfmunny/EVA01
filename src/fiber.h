@@ -38,6 +38,7 @@ public:
     static Fiber::ptr GetMainFiber();
     static void MainFunc();
     static void MakeMain();
+    static uint64_t GetFiberId();
     static void Yield();
     static uint64_t GetTotalCount();
     static uint64_t GetFiberId();

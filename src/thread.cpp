@@ -21,6 +21,7 @@ Thread::Thread(std::function<void()> cb, const std::string& name)
 };
 
 Thread* Thread::GetThis() { return t_thread; }
+
 const std::string& Thread::GetName() { return t_thread_name; }
 
 
@@ -31,8 +32,10 @@ void Thread::SetName(const std::string& name) {
 
     if (t_thread) {
         t_thread->m_name = name;
-        t_thread_name = name;
     }
+
+    t_thread_name = name;
+    pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());
 }
 
 void Thread::join() {
@@ -56,7 +59,7 @@ void* Thread::run(void* arg) {
     t_thread_name = t->m_name;
     t->m_id = GetThreadId();
 
-    pthread_setname_np(pthread_self(), t_thread_name.substr(0, 15).c_str());
+    SetName(t_thread_name);
 
     t->m_semaphore.notify();
     t->m_cb();
