@@ -32,6 +32,7 @@ private:
 
 public:
     void call();
+    void reset(std::function<void()> func);
 
 public:
     static Fiber::ptr GetThis();

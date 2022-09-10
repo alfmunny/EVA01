@@ -14,15 +14,16 @@
 #include "src/mutex.h"
 #include "src/singleton.h"
 #include "src/fiber.h"
+#include "src/thread.h"
 
 namespace eva01 {
 
 #define EVA_LOG_EVENT(logger, level, message) \
-    LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0, message))
+    LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0, Thread::GetName(), message))
     
 #define EVA_LOG_LEVEL(logger, level)                            \
     if (logger->getLevel() <= level)                             \
-        LogWrapper(logger, LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, GetThreadId(), Fiber::GetFiberId()))).getSS()
+        LogWrapper(logger, LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, GetThreadId(), Fiber::GetFiberId(), Thread::GetName()))).getSS()
 
 #define EVA_LOG_DEBUG(logger) EVA_LOG_LEVEL(logger, LogLevel::DEBUG)
 #define EVA_LOG_INFO(logger) EVA_LOG_LEVEL(logger, LogLevel::INFO)
@@ -33,7 +34,7 @@ namespace eva01 {
 #define EVA_ROOT_LOGGER() LoggerManager::Instance::Get()->getRootLogger();
 #define EVA_LOGGER(name) LoggerManager::Instance::Get()->getLogger(name);
 
-constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T[%p]%T[%c]%T%t%T%F%T%f{5}%T%l%T%m%n";
+constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T[%p]%T[%c]%T%t%T%N%T%F%T%f{5}%T%l%T%m%n";
 
 class LogLevel {
 public:
@@ -58,7 +59,8 @@ public:
 
     LogEvent(std::shared_ptr<Logger> logger, const char* file, int32_t line, uint64_t time, 
              LogLevel::Level level, uint32_t thread_id, 
-             uint64_t fiber_id, const std::string& message = "");
+             uint64_t fiber_id, const std::string& thread_name, 
+             const std::string& message = "");
 
     inline const char* getFile() const { return m_file; }
     inline int32_t getLine() const { return m_line; }
@@ -67,6 +69,7 @@ public:
     inline std::string getMessage() const { return m_ss.str(); }
     inline uint32_t getThreadId() const { return m_thread_id; }
     inline uint64_t getFiberId() const { return m_fiber_id; }
+    inline const std::string& getThreadName() const { return m_thread_name; }
     inline std::stringstream& getSS() { return m_ss; }
     inline std::shared_ptr<Logger> getLogger() { return m_logger; }
     
@@ -77,6 +80,7 @@ private:
     LogLevel::Level m_level;
     uint32_t m_thread_id;
     uint64_t m_fiber_id;
+    std::string m_thread_name;
     std::stringstream m_ss;
     std::shared_ptr<Logger> m_logger;
 };

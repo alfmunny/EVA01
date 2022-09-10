@@ -20,6 +20,7 @@ set(LIB_SRC
     src/util.cpp
     src/semaphore.cpp
     src/fiber.cpp
+    src/scheduler.cpp
     src/noncopyable.h
     src/mutex.h
     )
@@ -48,14 +49,18 @@ add_executable(test_fiber tests/test_fiber.cpp)
 add_dependencies(test_fiber eva01)
 target_link_libraries(test_fiber ${LIBS})
 
+add_executable(test_scheduler tests/test_scheduler.cpp)
+add_dependencies(test_scheduler eva01)
+target_link_libraries(test_scheduler ${LIBS})
+
 add_custom_target(test
     COMMAND test_log -d
     COMMAND test_thread -d
     COMMAND test_mutex -d
     COMMAND test_fiber -d
+    COMMAND test_scheduler -d
     WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
     )
-
 
 # Examples
 add_executable(example_logging examples/logging.cpp)
