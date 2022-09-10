@@ -53,7 +53,9 @@ pthread_join(pthread_t *thread)
 pthread_detach(pthread_t *thread)
 pthread_setname_np(pthread_t *thread, const char *name)
 ```
-Use semaphore to block in the constructor.
+Note: 
+
+* Use semaphore to block in the constructor, to make sure the function is in running before the constructor returns.
 
 ```c
 Semaphore::Semaphore(uint32_t count) {
@@ -107,3 +109,40 @@ pthread_rwlock_rdlock(&m_lock);
 pthread_rwlock_wrlock(&m_lock);
 pthread_rwlock_unlock(&m_lock); 
 ```
+
+## Fiber
+
+With `ucontext.h` it is possible to swtich context in user space.
+Fiber is a class with a set of functions to enable coroutine.
+
+Each thread has a main fiber. Every sub fiber will return to main fiber after it is done.
+
+A sub fiber can give up its execution to the main fiber -> Fiber::Yield().
+A sub fiber can be called and swapped into current execution -> fiber->call().
+
+```
+void func() {
+    // do something
+    Yield()
+    // continue 
+}
+fiber = new Fiber(func);
+fiber.call() // back from func when it yields
+fiber.call() // go into func again to continue
+```
+
+## Scheduler
+
+A scheduler maintains a thread pool and a task queue. 
+It will schedule the task with fiber, running in a random thread automatically.
+
+It can be initialized with a threads number.
+
+```
+new Scheduler(3)
+scheduler.start()
+scheduler.schedule(task)
+scheduler.stop()
+```
+
+
