@@ -57,6 +57,15 @@ Fiber::Fiber()
 
 Fiber::~Fiber() {
     --s_fiber_count;
+    if (this != t_main_fiber.get()) {
+        ASSERT(m_state == TERM || m_state == EXCEPT);
+        t_fiber = t_main_fiber.get();
+    } else {
+        ASSERT(!m_func);
+        ASSERT(m_state == RUNNING);
+        t_fiber = nullptr;
+    }
+
     EVA_LOG_DEBUG(g_logger) << "~Fiber id: " << m_id;
 }
 
@@ -107,10 +116,16 @@ Fiber::ptr Fiber::GetMainFiber() {
     }
 }
 
-uint64_t GetTotalCount() {
+uint64_t Fiber::GetTotalCount() {
     return s_fiber_count;
 }
 
+uint64_t Fiber::GetFiberId() {
+    if (t_fiber) {
+        return t_fiber->getId();
+    }
+    return 0;
+}
 
 Fiber::ptr Fiber::GetThis() {
     if (!t_fiber) {
