@@ -58,7 +58,7 @@ Fiber::Fiber()
 Fiber::~Fiber() {
     --s_fiber_count;
     if (this != t_main_fiber.get()) {
-        ASSERT(m_state == TERM || m_state == EXCEPT);
+        ASSERT(m_state != RUNNING);
         t_fiber = t_main_fiber.get();
     } else {
         ASSERT(!m_func);
@@ -67,6 +67,22 @@ Fiber::~Fiber() {
     }
 
     EVA_LOG_DEBUG(g_logger) << "~Fiber id: " << m_id;
+}
+
+void Fiber::reset(std::function<void()> func) {
+    ASSERT(t_main_fiber);
+
+    if(getcontext(&m_ctx)) {
+        ASSERT(false);
+    }
+
+    m_func = std::move(func);
+    m_state = READY;
+    m_ctx.uc_link = &t_main_fiber->m_ctx;
+    m_ctx.uc_stack.ss_sp = m_stack;
+    m_ctx.uc_stack.ss_size = sizeof(m_stack);
+
+    makecontext(&m_ctx, &Fiber::MainFunc, 0);
 }
 
 void Fiber::MakeMain() {
