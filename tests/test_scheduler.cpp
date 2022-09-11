@@ -15,6 +15,7 @@ static int count = 5;
 void func() {
     EVA_LOG_DEBUG(logger) << "test in fiber cout=" << count;
     if (--count >= 0) {
+        //sleep(1);
         //wille::Scheduler::GetThis()->schedule(&func, wille::GetThreadId()); //run in same thread
         eva01::Scheduler::GetThis()->schedule(&func); // run in random thread
     }
@@ -23,14 +24,15 @@ void func() {
 TEST_CASE("Test Fiber") {
     eva01::Scheduler sc(1, "sched");
     sc.start();
+    //sleep(5);
     sc.schedule(&func);
     sc.stop();
 
     // start again
-    count = 5;
-    sc.start();
-    sc.schedule(&func);
-    sc.stop();
+    //count = 5;
+    //sc.start();
+    //sc.schedule(&func);
+    //sc.stop();
 }
 
 

@@ -128,6 +128,7 @@ void func() {
 }
 fiber = new Fiber(func);
 fiber.call() // back from func when it yields
+doSomethingElse()
 fiber.call() // go into func again to continue
 ```
 
@@ -145,4 +146,18 @@ scheduler.schedule(task)
 scheduler.stop()
 ```
 
+Scheduler with epoll.
+
+* implement tickle() and idle() with epoll 
+    * create a pipe and register the read event in epoll
+    * wait for the read event in idle()
+    * tickle() write event to the pipe to wake up the idle threads
+
+
+```
+epoll_event event // struct for evets, event.events(EPOLLIN, EPOLLOUT, EPOLLET, EPOLLLT), event.data.fd, event.data.ptr
+epoll_create() // create epoll fd
+epoll_ctl()  // add or delete or modify the events
+epoll_wait() // blocking the current thread for events
+```
 

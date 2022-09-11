@@ -3,8 +3,10 @@
 #include "macro.h"
 #include "src/mutex.h"
 #include "src/thread.h"
-
-
+#include <bits/stdint-uintn.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
+#include <string.h>
 
 namespace eva01 {
 
@@ -13,32 +15,47 @@ static Logger::ptr g_logger = EVA_LOGGER("system");
 static thread_local Scheduler* t_scheduler = nullptr;
 static thread_local Fiber* t_fiber = nullptr;
 
+constexpr const int MAX_EVENTS = 256;
+constexpr const int EPOLL_WAIT_TIMEOUT_MS = 3000;
+
 Scheduler::Scheduler(int threads, const std::string& name) 
     : m_name(name) {
     ASSERT(threads > 0);
 
+    //initialize threads
     Thread::SetName(m_name);
     m_root_thread = GetThreadId();
     m_thread_count = threads;
+
+    //initialize epoll fd
+    m_epfd = epoll_create(5000);
+    ASSERT(m_epfd > 0);
+
+    ASSERT(!pipe(m_tickle_fds));
+    ASSERT(!fcntl(m_tickle_fds[0], F_SETFL, O_NONBLOCK));
+
+    epoll_event event;
+    memset(&event, 0, sizeof(epoll_event));
+    event.events = EPOLLIN | EPOLLET;
+    event.data.fd = m_tickle_fds[0];
+
+    ASSERT(!epoll_ctl(m_epfd, EPOLL_CTL_ADD, m_tickle_fds[0], &event));
 }
 
 Scheduler::~Scheduler() {
-    MutexGuard<Mutex> lock(m_mutex);
+    MutexGuard<MutexType> lock(m_mutex);
     ASSERT(!m_stopping);
     ASSERT(m_stopped);
 }
 
 void Scheduler::start() {
-    MutexGuard<Mutex> lock(m_mutex);
-    if (m_stopping) {
-        return;
-    }
+    MutexGuard<MutexType> lock(m_mutex);
+
+    if (m_stopping) { return; }
     m_stopped = false;
 
     ASSERT(m_threads.empty());
-
     m_threads.resize(m_thread_count);
-
     for (size_t i = 0; i < m_thread_count; ++i) {
         m_threads[i].reset(new Thread(
                     std::bind(&Scheduler::run, this), 
@@ -47,8 +64,9 @@ void Scheduler::start() {
 }
 
 void Scheduler::stop() {
+    EVA_LOG_DEBUG(g_logger) << "name=" << getName() << " stopping";
     {
-        MutexGuard<Mutex> lk(m_mutex);
+        MutexGuard<MutexType> lk(m_mutex);
         m_stopping = true;
     }
 
@@ -63,7 +81,7 @@ void Scheduler::stop() {
     }
 
     {
-        MutexGuard<Mutex> lk(m_mutex);
+        MutexGuard<MutexType> lk(m_mutex);
         m_threads.clear();
         m_stopping = false;
         m_stopped = true;
@@ -84,7 +102,7 @@ void Scheduler::run() {
 
         // find out todo task
         {
-            MutexGuard<Mutex> lk(m_mutex);
+            MutexGuard<MutexType> lk(m_mutex);
             auto it = m_tasks.begin();
             while (it != m_tasks.end()) {
                 // Skip the task, if task is assigned to a specific thread
@@ -100,7 +118,7 @@ void Scheduler::run() {
         }
 
         // This thread will be working, m_active_threads has to be increased before tickle()
-        // See should_running().
+        // See shouldStop().
         // The other threads need to know if there is still working threads.
         // If yes, the other threads will wait because m_active_threads != 0, even stop() is called, until all work is done.
         if (tk.fiber || tk.func) {
@@ -157,7 +175,11 @@ void Scheduler::run() {
 }
 
 void Scheduler::tickle() {
+    if (m_idle_threads <= 0) {
+        return;
+    }
     EVA_LOG_DEBUG(g_logger) << "tickle";
+    ASSERT(write(m_tickle_fds[1], "T", 1) == 1);
 }
 
 Scheduler* Scheduler::GetThis() {
@@ -168,17 +190,45 @@ Fiber* Scheduler::GetMainFiber() {
     return t_fiber;
 }
 
-bool Scheduler::should_stop() {
-    MutexGuard<Mutex> lk(m_mutex);
+bool Scheduler::shouldStop() {
+    MutexGuard<MutexType> lk(m_mutex);
     // Only to stop when stop is called and all tasks are done.
     return m_stopping && m_tasks.empty() && m_active_threads == 0;
 }
 
 void Scheduler::idle() {
     EVA_LOG_DEBUG(g_logger) <<  "idle";
-    while(!should_stop()) {
+    epoll_event *events = new epoll_event[MAX_EVENTS];
+    std::shared_ptr<epoll_event> events_deleter(events, [](epoll_event *ptr) { delete[] ptr; });
+
+    while (true) {
+        if(shouldStop()) {
+            EVA_LOG_DEBUG(g_logger) << "Scheduler name="  << getName() << " idle stopping";
+            break;
+        }
+    
+        int rt = 0;
+        while (true)  {
+            EVA_LOG_DEBUG(g_logger) << "epoll_wait waiting";
+            rt = epoll_wait(m_epfd, events, MAX_EVENTS, EPOLL_WAIT_TIMEOUT_MS);
+            if (rt <= 0 && errno == EINTR) {
+                // 0: timeout with no events, we can use this value to breakout with a timer later
+                // -1: error
+                // >0: events appear
+            }  else {
+                break;
+            }
+        }
+
+        for (int i = 0; i < rt; ++i) {
+            epoll_event event = events[i];
+            if (event.data.fd == m_tickle_fds[0]) {
+                char dummy[1];
+                while(read(m_tickle_fds[0], dummy, sizeof(dummy)) > 0);
+                continue;
+            }
+        }
         Fiber::Yield();
     }
 }
-
 }
