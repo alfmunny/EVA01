@@ -3,6 +3,7 @@
 #include "macro.h"
 #include "src/mutex.h"
 #include "src/thread.h"
+#include "src/timer.h"
 #include <bits/stdint-uintn.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
@@ -193,7 +194,7 @@ Fiber* Scheduler::GetMainFiber() {
 bool Scheduler::shouldStop() {
     MutexGuard<MutexType> lk(m_mutex);
     // Only to stop when stop is called and all tasks are done.
-    return m_stopping && m_tasks.empty() && m_active_threads == 0;
+    return !hasTimers() && m_stopping && m_tasks.empty() && m_active_threads == 0;
 }
 
 void Scheduler::idle() {
@@ -201,29 +202,49 @@ void Scheduler::idle() {
     epoll_event *events = new epoll_event[MAX_EVENTS];
     std::shared_ptr<epoll_event> events_deleter(events, [](epoll_event *ptr) { delete[] ptr; });
 
+    std::vector<TimerManager::Timer::ptr> timers;
+
     while (true) {
         if(shouldStop()) {
             EVA_LOG_DEBUG(g_logger) << "Scheduler name="  << getName() << " idle stopping";
             break;
         }
-    
+
         int rt = 0;
         while (true)  {
             EVA_LOG_DEBUG(g_logger) << "epoll_wait waiting";
-            rt = epoll_wait(m_epfd, events, MAX_EVENTS, EPOLL_WAIT_TIMEOUT_MS);
-            if (rt <= 0 && errno == EINTR) {
-                // 0: timeout with no events, we can use this value to breakout with a timer later
+
+            auto next_time = getNextTimeMs();
+            auto timeout = EPOLL_WAIT_TIMEOUT_MS;
+
+            if (next_time != 0ull && next_time < EPOLL_WAIT_TIMEOUT_MS) {
+                timeout = next_time;
+            }
+
+            rt = epoll_wait(m_epfd, events, MAX_EVENTS, (int)timeout);
+            if (rt < 0 && errno == EINTR) {
+                // 0: timeout with no events, 
                 // -1: error
                 // >0: events appear
-            }  else {
+            } 
+            else {
                 break;
             }
         }
 
+        // schedule expired timers
+        getExpiredTimers(timers);
+
+        for (auto& timer : timers) {
+            schedule(timer->m_func);
+        }
+        timers.clear();
+
+        // schedule ohter events, clear out the tickle fds
         for (int i = 0; i < rt; ++i) {
             epoll_event event = events[i];
             if (event.data.fd == m_tickle_fds[0]) {
-                char dummy[1];
+                char dummy[256];
                 while(read(m_tickle_fds[0], dummy, sizeof(dummy)) > 0);
                 continue;
             }
@@ -231,4 +252,9 @@ void Scheduler::idle() {
         Fiber::Yield();
     }
 }
+
+void Scheduler::onFirstTimerChanged() {
+    tickle();
+}
+
 }

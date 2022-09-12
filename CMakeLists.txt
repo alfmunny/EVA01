@@ -20,6 +20,7 @@ set(LIB_SRC
     src/util.cpp
     src/semaphore.cpp
     src/fiber.cpp
+    src/timer.cpp
     src/scheduler.cpp
     src/noncopyable.h
     src/mutex.h

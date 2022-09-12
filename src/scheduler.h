@@ -4,6 +4,7 @@
 #include "thread.h"
 #include "mutex.h"
 #include "macro.h"
+#include "timer.h"
 #include <vector>
 #include <list>
 #include <functional>
@@ -11,7 +12,7 @@
 
 namespace eva01 {
 
-class Scheduler {
+class Scheduler : public TimerManager {
 
 public:
     using ptr = std::shared_ptr<Scheduler>;
@@ -39,6 +40,22 @@ public:
             tickle();
         }
     }
+
+    template <typename Iterator>
+    void schedule(Iterator a, Iterator b, int thr = -1) {
+        MutexGuard<MutexType> lk(m_mutex);
+        bool need_tickle = m_tasks.empty();
+        for (auto it = a; it != b; ++it) {
+            m_tasks.emplace_back(std::move(*it), thr);
+        }
+        if (need_tickle) {
+            tickle();
+        }
+    }
+
+protected:
+
+    void onFirstTimerChanged() override;
 
 private:
     void run();
