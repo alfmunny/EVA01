@@ -214,10 +214,12 @@ void Scheduler::idle() {
         while (true)  {
             EVA_LOG_DEBUG(g_logger) << "epoll_wait waiting";
 
+            // calculate how long should epoll_wait block
             auto next_time = getNextTimeMs();
             auto timeout = EPOLL_WAIT_TIMEOUT_MS;
 
-            if (next_time != 0ull && next_time < EPOLL_WAIT_TIMEOUT_MS) {
+            // make sure next_time is a valid time, not a infinite number
+            if (next_time != ~0ull && next_time < EPOLL_WAIT_TIMEOUT_MS) {
                 timeout = next_time;
             }
 
@@ -234,15 +236,15 @@ void Scheduler::idle() {
 
         // schedule expired timers
         getExpiredTimers(timers);
-
-        for (auto& timer : timers) {
-            schedule(timer->m_func);
-        }
+        if (timers.empty()) 
+            continue;
+        schedule(timers.begin(), timers.end());
         timers.clear();
 
-        // schedule ohter events, clear out the tickle fds
+        // schedule ohter events
         for (int i = 0; i < rt; ++i) {
             epoll_event event = events[i];
+            // clear out the tickle fds
             if (event.data.fd == m_tickle_fds[0]) {
                 char dummy[256];
                 while(read(m_tickle_fds[0], dummy, sizeof(dummy)) > 0);
