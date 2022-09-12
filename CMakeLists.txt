@@ -22,6 +22,7 @@ set(LIB_SRC
     src/fiber.cpp
     src/timer.cpp
     src/scheduler.cpp
+    src/iomanager.cpp
     src/noncopyable.h
     src/mutex.h
     )
@@ -54,12 +55,17 @@ add_executable(test_scheduler tests/test_scheduler.cpp)
 add_dependencies(test_scheduler eva01)
 target_link_libraries(test_scheduler ${LIBS})
 
+add_executable(test_iomanager tests/test_iomanager.cpp)
+add_dependencies(test_iomanager eva01)
+target_link_libraries(test_iomanager ${LIBS})
+
 add_custom_target(test
     COMMAND test_log -d
     COMMAND test_thread -d
     COMMAND test_mutex -d
     COMMAND test_fiber -d
     COMMAND test_scheduler -d
+    COMMAND test_iomanager -d
     WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
     )
 
