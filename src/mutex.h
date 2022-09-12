@@ -95,6 +95,7 @@ private:
 };
 
 class MutexWriteGuard {
+public:
     MutexWriteGuard(RWMutex& mtx) 
         : m_mutex(mtx) {
         m_mutex.wrlock();
