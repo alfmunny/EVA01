@@ -1,6 +1,7 @@
 #pragma once
-#include "src/log.h"
-#include "src/mutex.h"
+#include "log.h"
+#include "mutex.h"
+#include "noncopyable.h"
 #include "util.h"
 #include <bits/stdint-uintn.h>
 #include <functional>
@@ -10,7 +11,7 @@
 
 namespace eva01 {
 
-class TimerManager {
+class TimerManager : NonCopyable {
 public:
     struct Timer : std::enable_shared_from_this<Timer> {
         using ptr = std::shared_ptr<Timer>;

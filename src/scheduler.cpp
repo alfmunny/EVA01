@@ -47,6 +47,9 @@ Scheduler::~Scheduler() {
     MutexGuard<MutexType> lock(m_mutex);
     ASSERT(!m_stopping);
     ASSERT(m_stopped);
+    close(m_epfd);
+    close(m_tickle_fds[0]);
+    close(m_tickle_fds[1]);
 }
 
 void Scheduler::start() {
@@ -194,7 +197,8 @@ Fiber* Scheduler::GetMainFiber() {
 bool Scheduler::shouldStop() {
     MutexGuard<MutexType> lk(m_mutex);
     // Only to stop when stop is called and all tasks are done.
-    return !hasTimers() && m_stopping && m_tasks.empty() && m_active_threads == 0;
+    return !hasTimers() && m_stopping && m_tasks.empty() 
+           && m_active_threads == 0 && m_pending_count == 0;
 }
 
 void Scheduler::idle() {
@@ -236,10 +240,10 @@ void Scheduler::idle() {
 
         // schedule expired timers
         getExpiredTimers(timers);
-        if (timers.empty()) 
-            continue;
-        schedule(timers.begin(), timers.end());
-        timers.clear();
+        if (!timers.empty()) {
+            schedule(timers.begin(), timers.end());
+            timers.clear();
+        }
 
         // schedule ohter events
         for (int i = 0; i < rt; ++i) {
@@ -250,6 +254,10 @@ void Scheduler::idle() {
                 while(read(m_tickle_fds[0], dummy, sizeof(dummy)) > 0);
                 continue;
             }
+
+            // schedule other io event
+            scheduleEvent(event);
+
         }
         Fiber::Yield();
     }

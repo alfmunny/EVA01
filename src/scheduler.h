@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fiber.h"
+#include "noncopyable.h"
 #include "thread.h"
 #include "mutex.h"
 #include "macro.h"
@@ -9,6 +10,7 @@
 #include <list>
 #include <functional>
 #include <atomic>
+#include <sys/epoll.h>
 
 namespace eva01 {
 
@@ -19,7 +21,7 @@ public:
     using MutexType = Mutex;
 
     Scheduler(int threads = 1, const std::string& name = "main");
-    ~Scheduler();
+    virtual ~Scheduler();
 
 public:
     static Scheduler* GetThis();
@@ -55,6 +57,7 @@ public:
 protected:
 
     void onFirstTimerChanged() override;
+    virtual bool scheduleEvent(epoll_event& event) { return true; };
 
 private:
     void run();
@@ -102,8 +105,11 @@ private:
     std::atomic<size_t> m_active_threads{ 0 };
     std::atomic<size_t> m_idle_threads{ 0 };
     int m_root_thread = 0;
-    int m_epfd = 0;
     int m_tickle_fds[2];
+
+protected:
+    int m_epfd = 0;
+    std::atomic<size_t> m_pending_count { 0 };
 };
 
 }
