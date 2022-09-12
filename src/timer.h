@@ -12,36 +12,39 @@ namespace eva01 {
 
 class TimerManager {
 public:
-    struct Timer {
+    struct Timer : std::enable_shared_from_this<Timer> {
         using ptr = std::shared_ptr<Timer>;
         uint64_t m_period; // in ms 
         uint64_t m_next;   // in ms
         std::function<void()> m_func;
         bool m_recurring;
+        TimerManager* m_manager = nullptr;
 
         struct cmp {
-            bool operator()(const Timer::ptr& a, const Timer::ptr& b) {
+            bool operator()(const Timer::ptr& a, const Timer::ptr& b) const {
                 if (!a && !b) return false;
                 if (!a) return true;
                 if (!b) return false;
 
                 if (a->m_next < b->m_next) return true;
-                if (a->m_next >= b->m_next) return false;
+                if (b->m_next < a->m_next) return false;
+
                 return a.get() < b.get();
             }
         };
 
-        Timer(uint64_t period, std::function<void()> func, bool recurring = false)
-            : m_period(period), m_func(func), m_recurring(recurring) {
+        Timer(uint64_t period, std::function<void()> func, bool recurring, TimerManager* manager)
+            : m_period(period), m_func(func), m_recurring(recurring), m_manager(manager) {
                 m_next = GetCurrentMs() + m_period;
         };
+
+        bool cancel();
+        bool refresh();
 
     };
 
 public:
-
     Timer::ptr addTimer(uint64_t period, std::function<void()> func, bool recurring);
-    void removeTimer(Timer::ptr timer);
     uint64_t getNextTimeMs();
     void getExpiredTimers(std::vector<Timer::ptr>& timers);
     bool hasTimers() { 

@@ -11,9 +11,28 @@ static Logger::ptr g_logger = EVA_LOGGER("system");
 using Timer = TimerManager::Timer;
 
 Timer::ptr TimerManager::addTimer(uint64_t period, std::function<void()> func, bool recurring) {
-    Timer::ptr timer = std::make_shared<Timer>(period, func, recurring);
+    Timer::ptr timer = std::make_shared<Timer>(period, func, recurring, this);
     addTimer(timer);
     return timer;
+}
+
+bool TimerManager::Timer::cancel() {
+    MutexWriteGuard lk(m_manager->m_mutex);
+    return m_manager->m_timers.erase(shared_from_this()) == 1;
+}
+
+bool TimerManager::Timer::refresh() {
+    auto timer = shared_from_this();
+    {
+        MutexWriteGuard lk(m_manager->m_mutex);
+
+        if (m_manager->m_timers.erase(timer) != 1) {
+            return false;
+        }
+        m_next = GetCurrentMs() + m_period;
+    }
+    m_manager->addTimer(timer);
+    return true;
 }
 
 void TimerManager::addTimer(Timer::ptr timer) {
@@ -29,11 +48,6 @@ void TimerManager::addTimer(Timer::ptr timer) {
     if (changed) {
         onFirstTimerChanged();
     }
-}
-
-void TimerManager::removeTimer(Timer::ptr timer) {
-    MutexWriteGuard lk(m_mutex);
-    m_timers.erase(timer);
 }
 
 void TimerManager::onFirstTimerChanged() {
@@ -76,9 +90,9 @@ void TimerManager::getExpiredTimers(std::vector<Timer::ptr>& timers) {
         }
     }
 
-    for (auto timer : timers) {
+    for (auto& timer : timers) {
         if (timer->m_recurring) {
-            timer->m_next = now + timer->m_period;
+            timer->m_next += timer->m_period; // 
             m_timers.insert(timer);
         }
     }

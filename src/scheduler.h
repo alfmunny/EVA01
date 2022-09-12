@@ -32,10 +32,8 @@ public:
     template <typename FiberOrFunc>
     void schedule(FiberOrFunc f, int thr = -1) {
         MutexGuard<MutexType> lk(m_mutex);
-
         bool need_tickle = m_tasks.empty();
         m_tasks.emplace_back(std::move(f), thr);
-
         if (need_tickle) {
             tickle();
         }
@@ -46,7 +44,8 @@ public:
         MutexGuard<MutexType> lk(m_mutex);
         bool need_tickle = m_tasks.empty();
         for (auto it = a; it != b; ++it) {
-            m_tasks.emplace_back(std::move(*it), thr);
+            Timer::ptr timer = *it;
+            m_tasks.emplace_back(timer->m_func, thr);
         }
         if (need_tickle) {
             tickle();

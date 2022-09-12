@@ -35,9 +35,9 @@ TEST_CASE("Test Fiber") {
     sc.stop();
 
     // start again
-    //count = 5;
-    //sc.start(); sc.schedule(&func);
-    //sc.stop();
+    count = 5;
+    sc.start(); sc.schedule(&func);
+    sc.stop();
 }
 
 TEST_CASE("Test Timer") {
@@ -45,20 +45,38 @@ TEST_CASE("Test Timer") {
     sc.start();
     int count1 = 0;
     int count2 = 0;
+    int count3 = 0;
+    int count4 = 0;
     
-    TimerManager::Timer::ptr timer = sc.addTimer(10, [&](){
+    TimerManager::Timer::ptr timer = sc.addTimer(100, [&](){
             count1 += 1;
-            EVA_LOG_DEBUG(logger) << "test in timer 10ms count=" << count1;
-            if (count1 == 5) {
-                sc.removeTimer(timer);
+            EVA_LOG_INFO(logger) << "test in timer 100ms count=" << count1;
+            if (count1 >= 5) {
+                timer->cancel();
             }
             }, true);
 
-    TimerManager::Timer::ptr timer2 = sc.addTimer(5, [&](){
+    TimerManager::Timer::ptr timer2 = sc.addTimer(50, [&](){
             count2 += 1;
-            EVA_LOG_DEBUG(logger) << "test in timer 5ms count=" << count2;
-            if (count2 == 5) {
-                sc.removeTimer(timer2);
+            EVA_LOG_INFO(logger) << "test in timer 50ms count=" << count2;
+            if (count2 >= 5) {
+                timer2->cancel();
+            }
+            }, true);
+
+    TimerManager::Timer::ptr timer3 = sc.addTimer(200, [&](){
+            count3 += 1;
+            EVA_LOG_INFO(logger) << "test in timer 200ms count=" << count3;
+            if (count3 >= 5) {
+                timer3->cancel();
+            }
+            }, true);
+
+    TimerManager::Timer::ptr timer4 = sc.addTimer(1, [&](){
+            count4 += 1;
+            EVA_LOG_INFO(logger) << "test in timer 1ms count=" << count4;
+            if (count4 >= 200) {
+                timer4->cancel();
             }
             }, true);
 
