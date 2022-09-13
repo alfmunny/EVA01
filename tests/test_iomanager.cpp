@@ -60,14 +60,14 @@ void test_fiber() {
     }
 }
 void func1() {
-    while (true) {
+    for (int count = 0; count < 3; ++count) {
         sleepf(1);
         EVA_LOG_DEBUG(g_logger) << "slept 1s";
     }
 }
 
 void func2() {
-    while (true) {
+    for (int count = 0; count < 3; ++count) {
         sleepf(2);
         EVA_LOG_DEBUG(g_logger) << "slept 2s";
     }
