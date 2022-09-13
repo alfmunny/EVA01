@@ -46,8 +46,7 @@ public:
         MutexGuard<MutexType> lk(m_mutex);
         bool need_tickle = m_tasks.empty();
         for (auto it = a; it != b; ++it) {
-            Timer::ptr timer = *it;
-            m_tasks.emplace_back(timer->m_func, thr);
+            m_tasks.emplace_back(std::move(*it), thr);
         }
         if (need_tickle) {
             tickle();
@@ -72,11 +71,11 @@ struct Task {
     int thread_id;
 
     Task(Fiber::ptr fb, int thr_id)
-        :fiber(fb), thread_id(thr_id) {
+        :fiber(std::move(fb)), thread_id(thr_id) {
     }
 
     Task(std::function<void()> fc, int thr_id)
-        :func(fc), thread_id(thr_id) {
+        :func(std::move(fc)), thread_id(thr_id) {
     } 
 
     Task() 

@@ -45,13 +45,10 @@ public:
     };
 
 public:
-    Timer::ptr addTimer(uint64_t period, std::function<void()> func, bool recurring);
+    Timer::ptr addTimer(uint64_t period, std::function<void()> func, bool recurring = false);
     uint64_t getNextTimeMs();
-    void getExpiredTimers(std::vector<Timer::ptr>& timers);
-    bool hasTimers() { 
-        MutexReadGuard lk(m_mutex);
-        return !m_timers.empty(); 
-    }
+    void getExpiredFuncs(std::vector<std::function<void()>>& funcs);
+    bool hasTimers();
 
 protected:
     virtual void onFirstTimerChanged();

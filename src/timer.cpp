@@ -68,7 +68,13 @@ uint64_t TimerManager::getNextTimeMs()  {
     }
 }
 
-void TimerManager::getExpiredTimers(std::vector<Timer::ptr>& timers) {
+bool TimerManager::hasTimers() { 
+    MutexReadGuard lk(m_mutex);
+    return !m_timers.empty(); 
+}
+
+void TimerManager::getExpiredFuncs(std::vector<std::function<void ()> > &funcs) {
+    auto now = GetCurrentMs();
     {
         MutexReadGuard lk(m_mutex);
         if (m_timers.empty()) {
@@ -76,21 +82,21 @@ void TimerManager::getExpiredTimers(std::vector<Timer::ptr>& timers) {
         }
     }
     
-    auto now = GetCurrentMs();
-
+    std::vector<Timer::ptr> expired_timers;
     MutexWriteGuard lk(m_mutex);
 
     for (auto it = m_timers.begin(); it != m_timers.end(); ) {
         auto timer = *it;
         if (timer->m_next <= now) {
-            timers.push_back(timer);
+            funcs.emplace_back(timer->m_func);
+            expired_timers.push_back(std::move(timer));
             it = m_timers.erase(it);
         } else {
             ++it;
         }
     }
 
-    for (auto& timer : timers) {
+    for (auto& timer : expired_timers) {
         if (timer->m_recurring) {
             timer->m_next += timer->m_period; // 
             m_timers.insert(timer);

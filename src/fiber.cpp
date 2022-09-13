@@ -123,6 +123,21 @@ void Fiber::Yield() {
 
 }
 
+void Fiber::YieldReady() {
+    // if current fiber is main fiber 
+    if (t_fiber == t_main_fiber.get()) {
+        return;
+    }
+    Fiber::ptr cur = GetThis();
+    cur->m_state = READY;
+    t_fiber = t_main_fiber.get();
+
+    if(swapcontext(&cur->m_ctx, &t_main_fiber->m_ctx)) {
+        ASSERT(false);
+    };
+
+}
+
 Fiber::ptr Fiber::GetMainFiber() {
     if (t_main_fiber) {
         return t_main_fiber;

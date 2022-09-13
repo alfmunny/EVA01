@@ -14,12 +14,24 @@
 
 namespace eva01 {
 
-static Logger::ptr g_logger = EVA_ROOT_LOGGER();
+static Logger::ptr g_logger = EVA_LOGGER("system");
 
 int sock = 0;
 
+void sleepf(uint64_t secs) {
+    Fiber::ptr fiber = Fiber::GetThis();
+    IOManager* iom = IOManager::GetThis();
+
+    iom->addTimer(secs * 1000, std::bind(
+                (void(eva01::Scheduler::*)
+        (eva01::Fiber::ptr, int thread))&eva01::IOManager::schedule
+        ,iom, fiber, -1));
+    Fiber::Yield();
+    return;
+}
+
 void test_fiber() { 
-    EVA_LOG_INFO(g_logger) << "test_fiber sock=" << sock;
+    EVA_LOG_DEBUG(g_logger) << "test_fiber sock=" << sock;
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
     fcntl(sock, F_SETFL, O_NONBLOCK);
@@ -33,25 +45,39 @@ void test_fiber() {
 
     if(!connect(sock, (const sockaddr*)&addr, sizeof(addr))) {
     } else if (errno == EINPROGRESS){
-        EVA_LOG_INFO(g_logger) << "add event errno=" << errno << " " << strerror(errno);
+        EVA_LOG_DEBUG (g_logger) << "add event errno=" << errno << " " << strerror(errno);
 
         IOManager::GetThis()->addEvent(sock, IOManager::READ, [](){
-            EVA_LOG_INFO(g_logger) << "read callback";
+            EVA_LOG_DEBUG(g_logger) << "read callback";
         });
         IOManager::GetThis()->addEvent(sock, IOManager::WRITE, [](){
-            EVA_LOG_INFO(g_logger) << "write callback";
+            EVA_LOG_DEBUG(g_logger) << "write callback";
             IOManager::GetThis()->cancelEvent(sock, IOManager::READ);
             close(sock);
         });
     } else {
-        EVA_LOG_INFO(g_logger) << "else" << errno << " " << strerror(errno);
+        EVA_LOG_DEBUG(g_logger) << "else" << errno << " " << strerror(errno);
+    }
+}
+void func1() {
+    while (true) {
+        sleepf(1);
+        EVA_LOG_DEBUG(g_logger) << "slept 1s";
+    }
+}
+
+void func2() {
+    while (true) {
+        sleepf(2);
+        EVA_LOG_DEBUG(g_logger) << "slept 2s";
     }
 }
 
 TEST_CASE("Test IOManager") {
     IOManager iom(2, "iom");
-    iom.schedule(&test_fiber);
-
+    //iom.schedule(&test_fiber);
+    std::vector<std::function<void()>> funcs = {func1, func2};
+    iom.schedule(funcs.begin(), funcs.end());
 }
 
 }

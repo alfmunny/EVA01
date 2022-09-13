@@ -97,7 +97,7 @@ void Scheduler::run() {
     t_scheduler = this;
 
     Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this))); // idle fiber for waiting on the task
-    Fiber::ptr func_fiber(new Fiber([](){})); // fiber to do the task, avoid creating new fiber for each new std::function
+    Fiber::ptr func_fiber; // fiber to do the task
     Task tk; // to register the next task, avoid creating a new task each loop.
 
     while (true) {
@@ -113,6 +113,9 @@ void Scheduler::run() {
                 if (it->thread_id != -1 && it->thread_id != GetThreadId()) {
                     continue;
                 }
+
+                ASSERT((it->fiber && it->fiber->getState() != Fiber::RUNNING) || 
+                        it->func);
                 
                 tk = std::move(*it);
                 m_tasks.erase(it);
@@ -137,35 +140,42 @@ void Scheduler::run() {
 
         // Schedule task
         // If the task is a fiber
-        if (tk.fiber) {
+        if (tk.fiber && !tk.fiber->isDone()) {
             tk.fiber->call(); // Do the task
             --m_active_threads; // Back from the task
 
-            // Reschedule if the task is not done
-            if (tk.fiber->getState() == Fiber::SUSPEND) {
+            // Reschedule if the task ready
+            if (tk.fiber->getState() == Fiber::READY) {
                 schedule(std::move(tk.fiber));
             } 
             tk.reset();
         } 
         // If the task is a function
         else if (tk.func) {
-            func_fiber->reset(std::move(tk.func));
-
+            if (func_fiber) {
+                func_fiber->reset(std::move(tk.func));
+            } else {
+                func_fiber = Fiber::ptr(new Fiber(std::move(tk.func)));
+            }
+            tk.reset();
             func_fiber->call(); // Do the task
             --m_active_threads; // Back from the task
 
             // Reschedule if the task is not done
-            if (func_fiber->getState() == Fiber::SUSPEND) {
-                schedule(std::move(func_fiber));
-            } 
+            if (func_fiber->getState() == Fiber::READY) {
+                schedule(func_fiber);
+                func_fiber.reset(); // create a new fiber, don't hold to current fiber.
+            } else if (func_fiber->isDone()) {
+                func_fiber->reset(nullptr); // the current fiber is done, we can overwrite it.
+            } else { // RUNNING(not likely, because we yield into here) OR SUSPENSE
+                func_fiber.reset(); // creata a new fiber, don't hold to current fiber.
+            }
 
-            tk.reset();
-            func_fiber->reset(nullptr);
         }
         else {
             // Stopping and break out run.
             // The idle fiber has terminated.
-            if (idle_fiber->getState() == Fiber::TERM) {
+            if (idle_fiber->isDone()) {
                 EVA_LOG_DEBUG(g_logger) << "idle fiber terminate";
                 break;
             }
@@ -206,7 +216,7 @@ void Scheduler::idle() {
     epoll_event *events = new epoll_event[MAX_EVENTS];
     std::shared_ptr<epoll_event> events_deleter(events, [](epoll_event *ptr) { delete[] ptr; });
 
-    std::vector<TimerManager::Timer::ptr> timers;
+    std::vector<std::function<void()>> expired_funcs;
 
     while (true) {
         if(shouldStop()) {
@@ -239,10 +249,10 @@ void Scheduler::idle() {
         }
 
         // schedule expired timers
-        getExpiredTimers(timers);
-        if (!timers.empty()) {
-            schedule(timers.begin(), timers.end());
-            timers.clear();
+        getExpiredFuncs(expired_funcs);
+        if (!expired_funcs.empty()) {
+            schedule(expired_funcs.begin(), expired_funcs.end());
+            expired_funcs.clear();
         }
 
         // schedule ohter events
