@@ -32,6 +32,7 @@ private:
 
 public:
     void call();
+    void yield();
     void reset(std::function<void()> func);
     bool isDone() const { return m_state == TERM || m_state == EXCEPT; }
 

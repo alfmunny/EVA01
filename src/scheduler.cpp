@@ -147,7 +147,7 @@ void Scheduler::run() {
             // Reschedule if the task ready
             if (tk.fiber->getState() == Fiber::READY) {
                 schedule(std::move(tk.fiber));
-            } 
+            }
             tk.reset();
         } 
         // If the task is a function
@@ -226,7 +226,7 @@ void Scheduler::idle() {
 
         int rt = 0;
         while (true)  {
-            EVA_LOG_DEBUG(g_logger) << "epoll_wait waiting";
+            // EVA_LOG_DEBUG(g_logger) << "epoll_wait waiting";
 
             // calculate how long should epoll_wait block
             auto next_time = getNextTimeMs();

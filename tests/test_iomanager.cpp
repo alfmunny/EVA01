@@ -14,7 +14,7 @@
 
 namespace eva01 {
 
-static Logger::ptr g_logger = EVA_LOGGER("system");
+static Logger::ptr g_logger = EVA_ROOT_LOGGER();
 
 int sock = 0;
 
@@ -76,7 +76,7 @@ void func2() {
 TEST_CASE("Test IOManager") {
     IOManager iom(2, "iom");
     //iom.schedule(&test_fiber);
-    std::vector<std::function<void()>> funcs = {func1, func2};
+    std::vector<std::function<void()>> funcs = { func1 };
     iom.schedule(funcs.begin(), funcs.end());
 }
 

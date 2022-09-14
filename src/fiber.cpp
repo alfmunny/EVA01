@@ -26,7 +26,7 @@ Fiber::Fiber(std::function<void()> func, bool is_main):
         ASSERT(false);
     }
 
-    m_ctx.uc_link = &t_main_fiber->m_ctx;
+    m_ctx.uc_link = nullptr;
     m_ctx.uc_stack.ss_sp = m_stack;
     m_ctx.uc_stack.ss_size = sizeof(m_stack);
 
@@ -39,6 +39,7 @@ Fiber::Fiber()
 {
     // Make sure no main fiber 
     ASSERT(!t_main_fiber);
+    t_fiber = this;
     m_main = true;
     m_state = RUNNING;
 
@@ -59,11 +60,13 @@ Fiber::~Fiber() {
     --s_fiber_count;
     if (this != t_main_fiber.get()) {
         ASSERT(m_state != RUNNING);
-        t_fiber = t_main_fiber.get();
     } else {
         ASSERT(!m_func);
         ASSERT(m_state == RUNNING);
-        t_fiber = nullptr;
+        Fiber* cur = t_fiber;
+        if (cur == this) {
+            t_fiber = nullptr;
+        }
     }
 
     EVA_LOG_DEBUG(g_logger) << "~Fiber id: " << m_id;
@@ -97,15 +100,26 @@ void Fiber::call() {
     if (m_main && t_fiber == t_main_fiber.get()) {
         return;
     }
+    t_fiber = this;
 
     ASSERT(m_state != RUNNING && m_state != TERM);
 
-    t_fiber = this;
     m_state = RUNNING;
     
     if(swapcontext(&t_main_fiber->m_ctx, &m_ctx)) {
         ASSERT(false);
     }
+}
+
+void Fiber::yield() {
+    // if current fiber is main fiber 
+    if (t_fiber == t_main_fiber.get()) {
+        return;
+    }
+    t_fiber = t_main_fiber.get();
+    if(swapcontext(&m_ctx, &t_main_fiber->m_ctx)) {
+        ASSERT(false);
+    };
 }
 
 void Fiber::Yield() {
@@ -177,6 +191,11 @@ void Fiber::MainFunc() {
         cur->m_state = EXCEPT;
         EVA_LOG_ERROR(g_logger) << "Exception: " << ex.what();
     }
+
+    auto raw_ptr = cur.get();
+    cur.reset();
+    raw_ptr->yield();
+
 }
 
 }
