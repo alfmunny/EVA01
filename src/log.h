@@ -31,8 +31,8 @@ namespace eva01 {
 #define EVA_LOG_ERROR(logger) EVA_LOG_LEVEL(logger, LogLevel::ERROR)
 #define EVA_LOG_FATAL(logger) EVA_LOG_LEVEL(logger, LogLevel::FATAL)
 
-#define EVA_ROOT_LOGGER() LoggerManager::Instance::Get()->getRootLogger();
-#define EVA_LOGGER(name) LoggerManager::Instance::Get()->getLogger(name);
+#define EVA_ROOT_LOGGER() LoggerManager::Instance::Get()->getRootLogger()
+#define EVA_LOGGER(name) LoggerManager::Instance::Get()->getLogger(name)
 
 constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T[%p]%T[%c]%T%t%T%N%T%F%T%f{5}%T%l%T%m%n";
 

@@ -32,7 +32,9 @@ private:
 
 public:
     void call();
+    void yield();
     void reset(std::function<void()> func);
+    bool isDone() const { return m_state == TERM || m_state == EXCEPT; }
 
 public:
     static Fiber::ptr GetThis();
@@ -40,6 +42,7 @@ public:
     static void MainFunc();
     static void MakeMain();
     static void Yield();
+    static void YieldReady();
     static uint64_t GetTotalCount();
     static uint64_t GetFiberId();
 
