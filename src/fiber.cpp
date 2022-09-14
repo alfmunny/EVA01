@@ -26,7 +26,8 @@ Fiber::Fiber(std::function<void()> func, bool is_main):
         ASSERT(false);
     }
 
-    m_ctx.uc_link = nullptr;
+    //!!Important: do not set resume link. We may switch thread. The context may not exist
+    m_ctx.uc_link = nullptr; 
     m_ctx.uc_stack.ss_sp = m_stack;
     m_ctx.uc_stack.ss_size = sizeof(m_stack);
 
@@ -192,6 +193,7 @@ void Fiber::MainFunc() {
         EVA_LOG_ERROR(g_logger) << "Exception: " << ex.what();
     }
 
+    //!!Important: swap out manually to free the pointer cur.
     auto raw_ptr = cur.get();
     cur.reset();
     raw_ptr->yield();
