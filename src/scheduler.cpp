@@ -237,9 +237,11 @@ void Scheduler::idle() {
                 timeout = next_time;
             }
 
+            // Block util events appear
+            // It may wake up from tickle and other registered IO events
             rt = epoll_wait(m_epfd, events, MAX_EVENTS, (int)timeout);
             if (rt < 0 && errno == EINTR) {
-                // 0: timeout with no events, 
+                // 0: timeout with no events, may be a timer has expired
                 // -1: error
                 // >0: events appear
             } 
@@ -255,7 +257,7 @@ void Scheduler::idle() {
             expired_funcs.clear();
         }
 
-        // schedule ohter events
+        // schedule other events
         for (int i = 0; i < rt; ++i) {
             epoll_event event = events[i];
             // clear out the tickle fds
@@ -265,7 +267,7 @@ void Scheduler::idle() {
                 continue;
             }
 
-            // schedule other io event
+            // schedule other IO event
             scheduleEvent(event);
 
         }

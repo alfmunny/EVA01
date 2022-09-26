@@ -9,9 +9,10 @@ namespace eva01 {
 static std::atomic<uint64_t> s_fiber_id { 0 };
 static std::atomic<uint64_t> s_fiber_count { 0 };
 
-static Logger::ptr g_logger = EVA_LOGGER("system");
 static thread_local Fiber* t_fiber = nullptr;
 static thread_local Fiber::ptr t_main_fiber = nullptr;
+
+static Logger::ptr g_logger = EVA_LOGGER("system");
 
 Fiber::Fiber(std::function<void()> func, bool is_main):
     m_id(++s_fiber_id),
