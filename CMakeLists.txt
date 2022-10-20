@@ -11,6 +11,7 @@ set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O0 -ggdb -std=c++14 -Wall -Wno-deprecated -
 find_library(PTHREAD pthread)
 
 include_directories(.)
+include_directories(./include)
 include_directories(~/user/local/include)
 link_directories(~/user/local/lib)
 
@@ -23,8 +24,6 @@ set(LIB_SRC
     src/timer.cpp
     src/scheduler.cpp
     src/iomanager.cpp
-    src/noncopyable.h
-    src/mutex.h
     )
 
 add_library(eva01 SHARED ${LIB_SRC})

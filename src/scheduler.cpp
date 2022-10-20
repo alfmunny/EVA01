@@ -71,6 +71,7 @@ void Scheduler::stop() {
     EVA_LOG_DEBUG(g_logger) << "name=" << getName() << " stopping";
     {
         MutexGuard<MutexType> lk(m_mutex);
+        m_auto_stop = true;
         m_stopping = true;
     }
 
@@ -89,6 +90,7 @@ void Scheduler::stop() {
         m_threads.clear();
         m_stopping = false;
         m_stopped = true;
+        m_auto_stop = false;
     }
 }
 
@@ -207,7 +209,7 @@ Fiber* Scheduler::GetMainFiber() {
 bool Scheduler::shouldStop() {
     MutexGuard<MutexType> lk(m_mutex);
     // Only to stop when stop is called and all tasks are done.
-    return !hasTimers() && m_stopping && m_tasks.empty() 
+    return !hasTimers() && m_auto_stop && m_stopping && m_tasks.empty() 
            && m_active_threads == 0 && m_pending_count == 0;
 }
 

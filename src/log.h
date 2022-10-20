@@ -16,23 +16,25 @@
 #include "src/fiber.h"
 #include "src/thread.h"
 
-namespace eva01 {
-
 #define EVA_LOG_EVENT(logger, level, message) \
-    LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0, Thread::GetName(), message))
+    eva01::LogEvent::ptr(new eva01::LogEvent(logger, __FILE__, __LINE__, time(0), level, 0, 0, eva01::Thread::GetName(), message))
     
-#define EVA_LOG_LEVEL(logger, level)                            \
-    if (logger->getLevel() <= level)                             \
-        LogWrapper(logger, LogEvent::ptr(new LogEvent(logger, __FILE__, __LINE__, time(0), level, GetThreadId(), Fiber::GetFiberId(), Thread::GetName()))).getSS()
+#define EVA_LOG_LEVEL(logger, level)                                \
+    if (logger->getLevel() <= level)                                \
+        eva01::LogWrapper(logger, eva01::LogEvent::ptr(             \
+                    new eva01::LogEvent(logger, __FILE__, __LINE__, \
+                        time(0), level, eva01::GetThreadId(), Fiber::GetFiberId(), eva01::Thread::GetName()))).getSS()
 
-#define EVA_LOG_DEBUG(logger) EVA_LOG_LEVEL(logger, LogLevel::DEBUG)
-#define EVA_LOG_INFO(logger) EVA_LOG_LEVEL(logger, LogLevel::INFO)
-#define EVA_LOG_WARN(logger) EVA_LOG_LEVEL(logger, LogLevel::WARN)
-#define EVA_LOG_ERROR(logger) EVA_LOG_LEVEL(logger, LogLevel::ERROR)
-#define EVA_LOG_FATAL(logger) EVA_LOG_LEVEL(logger, LogLevel::FATAL)
+#define EVA_LOG_DEBUG(logger) EVA_LOG_LEVEL(logger, eva01::LogLevel::DEBUG)
+#define EVA_LOG_INFO(logger) EVA_LOG_LEVEL(logger, eva01::LogLevel::INFO)
+#define EVA_LOG_WARN(logger) EVA_LOG_LEVEL(logger, eva01::LogLevel::WARN)
+#define EVA_LOG_ERROR(logger) EVA_LOG_LEVEL(logger, eva01::LogLevel::ERROR)
+#define EVA_LOG_FATAL(logger) EVA_LOG_LEVEL(logger, eva01::LogLevel::FATAL)
 
-#define EVA_ROOT_LOGGER() LoggerManager::Instance::Get()->getRootLogger()
-#define EVA_LOGGER(name) LoggerManager::Instance::Get()->getLogger(name)
+#define EVA_ROOT_LOGGER() eva01::LoggerManager::Instance::Get()->getRootLogger()
+#define EVA_LOGGER(name) eva01::LoggerManager::Instance::Get()->getLogger(name)
+
+namespace eva01 {
 
 constexpr const char* DEFAULT_PATTERN = "%d{%Y-%m-%d %a %H:%M:%S}%T[%p]%T[%c]%T%t%T%N%T%F%T%f{5}%T%l%T%m%n";
 
