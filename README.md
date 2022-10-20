@@ -1,4 +1,18 @@
-A simple server framework written in C++
+# EVA01
+
+A simple event-driven framework for server and io-events written in C++ aiming at high performance.
+
+## Build
+
+```bash
+cmake .
+make
+```
+## Test
+
+```
+make test
+```
 
 ## Logging
 - Logger
@@ -160,4 +174,8 @@ epoll_create() // create epoll fd
 epoll_ctl()  // add or delete or modify the events
 epoll_wait() // blocking the current thread for events
 ```
+
+## IOManager
+
+A IOManager can schedule IO events with Fiber within a thread-pool.
 
