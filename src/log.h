@@ -23,7 +23,7 @@
     if (logger->getLevel() <= level)                                \
         eva01::LogWrapper(logger, eva01::LogEvent::ptr(             \
                     new eva01::LogEvent(logger, __FILE__, __LINE__, \
-                        time(0), level, eva01::GetThreadId(), Fiber::GetFiberId(), eva01::Thread::GetName()))).getSS()
+                        time(0), level, eva01::GetThreadId(), eva01::Fiber::GetFiberId(), eva01::Thread::GetName()))).getSS()
 
 #define EVA_LOG_DEBUG(logger) EVA_LOG_LEVEL(logger, eva01::LogLevel::DEBUG)
 #define EVA_LOG_INFO(logger) EVA_LOG_LEVEL(logger, eva01::LogLevel::INFO)

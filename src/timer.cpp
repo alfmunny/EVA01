@@ -16,6 +16,19 @@ Timer::ptr TimerManager::addTimer(uint64_t period, std::function<void()> func, b
     return timer;
 }
 
+static void OnTimer(std::weak_ptr<void> weak_cond, std::function<void()> cb) {
+    std::shared_ptr<void> tmp = weak_cond.lock();
+    if(tmp) {
+        cb();
+    }
+}
+
+Timer::ptr TimerManager::addConditionTimer(uint64_t ms, std::function<void()> cb
+                                    ,std::weak_ptr<void> weak_cond
+                                    ,bool recurring) {
+    return addTimer(ms, std::bind(&OnTimer, weak_cond, cb), recurring);
+}
+
 bool TimerManager::Timer::cancel() {
     MutexWriteGuard lk(m_manager->m_mutex);
     return m_manager->m_timers.erase(shared_from_this()) == 1;

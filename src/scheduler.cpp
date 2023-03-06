@@ -4,6 +4,8 @@
 #include "src/mutex.h"
 #include "src/thread.h"
 #include "src/timer.h"
+#include "src/hook.h"
+
 #include <bits/stdint-uintn.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
@@ -97,6 +99,7 @@ void Scheduler::stop() {
 void Scheduler::run() {
     t_fiber = Fiber::GetThis().get(); // initialize main fiber in this thread.
     t_scheduler = this;
+    set_hook(true);
 
     Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this))); // idle fiber for waiting on the task
     Fiber::ptr func_fiber; // fiber to do the task

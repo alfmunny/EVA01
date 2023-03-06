@@ -24,6 +24,8 @@ set(LIB_SRC
     src/timer.cpp
     src/scheduler.cpp
     src/iomanager.cpp
+    src/fd_manager.cpp
+    src/hook.cpp
     )
 
 add_library(eva01 SHARED ${LIB_SRC})
@@ -31,6 +33,7 @@ add_library(eva01 SHARED ${LIB_SRC})
 set(LIBS
     eva01
     pthread
+    dl
     )
 
 # Tests
@@ -58,6 +61,10 @@ add_executable(test_iomanager tests/test_iomanager.cpp)
 add_dependencies(test_iomanager eva01)
 target_link_libraries(test_iomanager ${LIBS})
 
+add_executable(test_hook tests/test_hook.cpp)
+add_dependencies(test_hook eva01)
+target_link_libraries(test_hook ${LIBS})
+
 add_custom_target(test
     COMMAND test_log -d
     COMMAND test_thread -d
@@ -65,6 +72,7 @@ add_custom_target(test
     COMMAND test_fiber -d
     COMMAND test_scheduler -d
     COMMAND test_iomanager -d
+    COMMAND test_hook -d
     WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
     )
 
