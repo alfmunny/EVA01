@@ -79,6 +79,7 @@ public:
     bool scheduleEvent(epoll_event& event) override;
     bool addEvent(int fd, Event event, std::function<void()> func = nullptr);
     bool cancelEvent(int fd, Event event);
+    bool cancelAll(int fd);
     bool delEvent(int fd, Event event);
     static IOManager* GetThis();
 

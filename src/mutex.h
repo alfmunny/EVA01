@@ -83,15 +83,30 @@ public:
     MutexReadGuard(RWMutex& mtx) 
         : m_mutex(mtx) {
         m_mutex.rdlock();
+        m_locked = true;
     }
 
     ~MutexReadGuard() {
-        m_mutex.unlock();
+        unlock();
+    }
+
+    void lock() {
+        if(!m_locked) {
+            m_mutex.rdlock();
+            m_locked = true;
+        }
+    }
+
+    void unlock() {
+        if(m_locked) {
+            m_mutex.unlock();
+            m_locked = false;
+        }
     }
 
 private:
     RWMutex& m_mutex;
-
+    bool m_locked;
 };
 
 class MutexWriteGuard {
@@ -102,12 +117,25 @@ public:
     };
 
     ~MutexWriteGuard() {
-        m_mutex.unlock();
+        unlock();
+    }
+    void lock() {
+        if(!m_locked) {
+            m_mutex.wrlock();
+            m_locked = true;
+        }
+    }
+
+    void unlock() {
+        if(m_locked) {
+            m_mutex.unlock();
+            m_locked = false;
+        }
     }
 
 private:
     RWMutex& m_mutex;
-
+    bool m_locked;
 };
 
 }

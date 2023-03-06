@@ -151,6 +151,45 @@ bool IOManager::cancelEvent(int fd, Event event) {
     return true;
 }
 
+bool IOManager::cancelAll(int fd) {
+    MutexReadGuard lock(m_mutex);
+    if((int)m_fd_contexts.size() <= fd) {
+        return false;
+    }
+    FdContext* fd_ctx = m_fd_contexts[fd];
+    lock.unlock();
+
+    MutexGuard<Mutex> lock2(fd_ctx->mtx);
+    if(!fd_ctx->events) {
+        return false;
+    }
+
+    int op = EPOLL_CTL_DEL;
+    epoll_event epevent;
+    epevent.events = 0;
+    epevent.data.ptr = fd_ctx;
+
+    int rt = epoll_ctl(m_epfd, op, fd, &epevent);
+    if(rt) {
+        EVA_LOG_ERROR(g_logger) << "epoll_ctl(" << m_epfd << ", "
+            << op << ", " << fd << ", " << (EPOLL_EVENTS)epevent.events << "):"
+            << rt << " (" << errno << ") (" << strerror(errno) << ")";
+        return false;
+    }
+
+    if(fd_ctx->events & READ) {
+        fd_ctx->scheduleEvent(READ);
+        --m_pending_count;
+    }
+    if(fd_ctx->events & WRITE) {
+        fd_ctx->scheduleEvent(WRITE);
+        --m_pending_count;
+    }
+
+    ASSERT(fd_ctx->events == 0);
+    return true;
+}
+
 bool IOManager::scheduleEvent(epoll_event& event){
     FdContext* fd_ctx = (FdContext*)event.data.ptr;
     MutexGuard<Mutex> lk(fd_ctx->mtx);
